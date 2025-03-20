@@ -2,3 +2,7 @@ lean_practice/my_project/
 lean_practice2/my_project/
 wandb/
 runs/
+data/leandojo_benchmark_4_v10/
+model.safetensors
+eval/results/
+data/leandojo_benchmark_4_v1/
