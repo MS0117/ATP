@@ -1,7 +1,0 @@
-{"time":"2025-03-13T19:23:50.545547605+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/userhomes/minsu/symr/wandb/run-20250313_192350-dnkypiva/logs/debug-core.log"}
-{"time":"2025-03-13T19:23:50.701786608+09:00","level":"INFO","msg":"created new stream","id":"dnkypiva"}
-{"time":"2025-03-13T19:23:50.701811435+09:00","level":"INFO","msg":"stream: started","id":"dnkypiva"}
-{"time":"2025-03-13T19:23:50.70183552+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"dnkypiva"}
-{"time":"2025-03-13T19:23:50.701860327+09:00","level":"INFO","msg":"handler: started","stream_id":"dnkypiva"}
-{"time":"2025-03-13T19:23:50.701916744+09:00","level":"INFO","msg":"sender: started","stream_id":"dnkypiva"}
-{"time":"2025-03-13T19:23:51.213417102+09:00","level":"INFO","msg":"Starting system monitor"}

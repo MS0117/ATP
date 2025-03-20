@@ -1,1 +1,0 @@
-{"profiling/Time taken: CUSTOMTrainer._get_per_token_logps":0.35577625399673707,"_timestamp":1.7418719722536592e+09,"_runtime":17.636701014,"_step":1,"train/global_step":0,"profiling/Time taken: CUSTOMTrainer._prepare_inputs":16.272531279999384,"_wandb":{"runtime":1138}}

@@ -1,7 +1,0 @@
-{"time":"2025-03-14T13:48:29.265448607+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/userhomes/minsu/symr/wandb/run-20250314_134828-aotz72xl/logs/debug-core.log"}
-{"time":"2025-03-14T13:48:29.40561555+09:00","level":"INFO","msg":"created new stream","id":"aotz72xl"}
-{"time":"2025-03-14T13:48:29.405638895+09:00","level":"INFO","msg":"stream: started","id":"aotz72xl"}
-{"time":"2025-03-14T13:48:29.405663792+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"aotz72xl"}
-{"time":"2025-03-14T13:48:29.405701202+09:00","level":"INFO","msg":"sender: started","stream_id":"aotz72xl"}
-{"time":"2025-03-14T13:48:29.405722893+09:00","level":"INFO","msg":"handler: started","stream_id":"aotz72xl"}
-{"time":"2025-03-14T13:48:29.881353467+09:00","level":"INFO","msg":"Starting system monitor"}

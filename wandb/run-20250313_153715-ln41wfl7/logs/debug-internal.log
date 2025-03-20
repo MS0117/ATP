@@ -1,7 +1,0 @@
-{"time":"2025-03-13T15:37:34.61400339+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/userhomes/minsu/symr/wandb/run-20250313_153715-ln41wfl7/logs/debug-core.log"}
-{"time":"2025-03-13T15:37:34.763117817+09:00","level":"INFO","msg":"created new stream","id":"ln41wfl7"}
-{"time":"2025-03-13T15:37:34.763145569+09:00","level":"INFO","msg":"stream: started","id":"ln41wfl7"}
-{"time":"2025-03-13T15:37:34.763163453+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"ln41wfl7"}
-{"time":"2025-03-13T15:37:34.763201154+09:00","level":"INFO","msg":"sender: started","stream_id":"ln41wfl7"}
-{"time":"2025-03-13T15:37:34.76320424+09:00","level":"INFO","msg":"handler: started","stream_id":"ln41wfl7"}
-{"time":"2025-03-13T15:37:35.24236921+09:00","level":"INFO","msg":"Starting system monitor"}

@@ -1,1 +1,0 @@
-{"_wandb":{"runtime":22},"_runtime":21.336205022,"_step":1,"train/global_step":0,"profiling/Time taken: CUSTOMTrainer._get_per_token_logps":4.561828103032894,"_timestamp":1.7424575609031718e+09,"profiling/Time taken: CUSTOMTrainer._prepare_inputs":19.5803089189576}

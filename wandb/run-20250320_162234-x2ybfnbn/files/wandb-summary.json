@@ -1,1 +1,0 @@
-{"_timestamp":1.7424553869778376e+09,"_runtime":30.169491142,"_step":0,"train/global_step":0,"_wandb":{"runtime":385},"profiling/Time taken: CUSTOMTrainer._get_per_token_logps":23.841651412891224}
