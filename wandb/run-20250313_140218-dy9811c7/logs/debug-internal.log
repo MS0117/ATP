@@ -1,0 +1,10 @@
+{"time":"2025-03-13T14:02:19.231766422+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/userhomes/minsu/symr/wandb/run-20250313_140218-dy9811c7/logs/debug-core.log"}
+{"time":"2025-03-13T14:02:19.366897641+09:00","level":"INFO","msg":"created new stream","id":"dy9811c7"}
+{"time":"2025-03-13T14:02:19.36692914+09:00","level":"INFO","msg":"stream: started","id":"dy9811c7"}
+{"time":"2025-03-13T14:02:19.366953066+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"dy9811c7"}
+{"time":"2025-03-13T14:02:19.36698687+09:00","level":"INFO","msg":"sender: started","stream_id":"dy9811c7"}
+{"time":"2025-03-13T14:02:19.36703481+09:00","level":"INFO","msg":"handler: started","stream_id":"dy9811c7"}
+{"time":"2025-03-13T14:02:19.824352814+09:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-03-13T14:12:47.211807594+09:00","level":"INFO","msg":"stream: closing","id":"dy9811c7"}
+{"time":"2025-03-13T14:12:47.21185843+09:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-03-13T14:12:47.212523257+09:00","level":"INFO","msg":"Stopped system monitor"}

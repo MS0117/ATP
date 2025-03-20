@@ -1,0 +1,7 @@
+{"time":"2025-03-14T15:08:36.090326958+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/userhomes/minsu/symr/wandb/run-20250314_150835-qlg12bub/logs/debug-core.log"}
+{"time":"2025-03-14T15:08:36.233138318+09:00","level":"INFO","msg":"created new stream","id":"qlg12bub"}
+{"time":"2025-03-14T15:08:36.233174426+09:00","level":"INFO","msg":"stream: started","id":"qlg12bub"}
+{"time":"2025-03-14T15:08:36.233200876+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"qlg12bub"}
+{"time":"2025-03-14T15:08:36.233246663+09:00","level":"INFO","msg":"sender: started","stream_id":"qlg12bub"}
+{"time":"2025-03-14T15:08:36.233284294+09:00","level":"INFO","msg":"handler: started","stream_id":"qlg12bub"}
+{"time":"2025-03-14T15:08:36.729421952+09:00","level":"INFO","msg":"Starting system monitor"}

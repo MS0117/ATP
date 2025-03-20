@@ -1,0 +1,7 @@
+{"time":"2025-03-17T14:14:32.56041132+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/userhomes/minsu/symr/wandb/run-20250317_141432-eqal4fqs/logs/debug-core.log"}
+{"time":"2025-03-17T14:14:32.714018813+09:00","level":"INFO","msg":"created new stream","id":"eqal4fqs"}
+{"time":"2025-03-17T14:14:32.714056183+09:00","level":"INFO","msg":"stream: started","id":"eqal4fqs"}
+{"time":"2025-03-17T14:14:32.714083896+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"eqal4fqs"}
+{"time":"2025-03-17T14:14:32.714105396+09:00","level":"INFO","msg":"handler: started","stream_id":"eqal4fqs"}
+{"time":"2025-03-17T14:14:32.714158226+09:00","level":"INFO","msg":"sender: started","stream_id":"eqal4fqs"}
+{"time":"2025-03-17T14:14:33.253882576+09:00","level":"INFO","msg":"Starting system monitor"}

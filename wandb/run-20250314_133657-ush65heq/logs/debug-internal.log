@@ -1,0 +1,10 @@
+{"time":"2025-03-14T13:36:57.78532549+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/userhomes/minsu/symr/wandb/run-20250314_133657-ush65heq/logs/debug-core.log"}
+{"time":"2025-03-14T13:36:57.934482179+09:00","level":"INFO","msg":"created new stream","id":"ush65heq"}
+{"time":"2025-03-14T13:36:57.934517506+09:00","level":"INFO","msg":"stream: started","id":"ush65heq"}
+{"time":"2025-03-14T13:36:57.934560046+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"ush65heq"}
+{"time":"2025-03-14T13:36:57.934596836+09:00","level":"INFO","msg":"handler: started","stream_id":"ush65heq"}
+{"time":"2025-03-14T13:36:57.934625881+09:00","level":"INFO","msg":"sender: started","stream_id":"ush65heq"}
+{"time":"2025-03-14T13:36:58.526476822+09:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-03-14T13:37:59.059293309+09:00","level":"INFO","msg":"stream: closing","id":"ush65heq"}
+{"time":"2025-03-14T13:37:59.05935169+09:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-03-14T13:37:59.059962824+09:00","level":"INFO","msg":"Stopped system monitor"}

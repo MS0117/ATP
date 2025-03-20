@@ -1,0 +1,10 @@
+{"time":"2025-03-14T13:28:12.093977537+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/userhomes/minsu/symr/wandb/run-20250314_132811-zehv00a3/logs/debug-core.log"}
+{"time":"2025-03-14T13:28:12.575196506+09:00","level":"INFO","msg":"created new stream","id":"zehv00a3"}
+{"time":"2025-03-14T13:28:12.575270005+09:00","level":"INFO","msg":"stream: started","id":"zehv00a3"}
+{"time":"2025-03-14T13:28:12.575338063+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"zehv00a3"}
+{"time":"2025-03-14T13:28:12.575358742+09:00","level":"INFO","msg":"handler: started","stream_id":"zehv00a3"}
+{"time":"2025-03-14T13:28:12.575418205+09:00","level":"INFO","msg":"sender: started","stream_id":"zehv00a3"}
+{"time":"2025-03-14T13:28:14.543751659+09:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-03-14T13:29:24.387384519+09:00","level":"INFO","msg":"stream: closing","id":"zehv00a3"}
+{"time":"2025-03-14T13:29:24.387447458+09:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-03-14T13:29:24.388186014+09:00","level":"INFO","msg":"Stopped system monitor"}

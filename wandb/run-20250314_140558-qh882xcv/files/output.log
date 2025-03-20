@@ -1,0 +1,138 @@
+  0%|                                                                                                                                                                                                         | 0/87543 [00:00<?, ?it/s][WARNING|utils.py:1843] 2025-03-14 14:05:59,658 >> Setting `pad_token_id` to `eos_token_id`:50256 for open-end generation.
+[WARNING|logging.py:329] 2025-03-14 14:06:00,099 >> `use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`...
+self._metrics[mode] defaultdict(<class 'list'>, {'completion_length': [199.53125], 'rewards/reward_len': [-745.90625], 'reward': [-745.90625], 'reward_std': [339.4517822265625], 'kl': [83361792.0], 'clip_ratio': [0.0]})
+loss tensor(3349142.2500, device='cuda:0', grad_fn=<DivBackward0>)
+[2025-03-14 14:06:51,267] [WARNING] [stage3.py:2139:step] 36 pytorch allocator cache flushes since last step. this happens when there is high memory pressure and is detrimental to performance. if this is happening frequently consider adjusting settings to reduce memory consumption. If you are unable to make the cache flushes go away consider adding get_accelerator().empty_cache() calls in your training loop to ensure that all ranks flush their caches at the same time
+  0%|                                                                                                                                                                                            | 1/87543 [00:51<1256:06:37, 51.66s/it][WARNING|utils.py:1843] 2025-03-14 14:06:51,289 >> Setting `pad_token_id` to `eos_token_id`:50256 for open-end generation.
+Traceback (most recent call last):
+  File "/userhomes/minsu/symr/train.py", line 249, in <module>
+    main(
+  File "/userhomes/minsu/symr/train.py", line 183, in main
+    train_result = trainer.train()
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2241, in train
+    return inner_training_loop(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2548, in _inner_training_loop
+    tr_loss_step = self.training_step(model, inputs, num_items_in_batch)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 3692, in training_step
+    inputs = self._prepare_inputs(inputs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/extras/profiling.py", line 87, in wrapper
+    return func(self, *args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/trainer/grpo_trainer.py", line 706, in _prepare_inputs
+    inputs = self._generate_and_score_completions(inputs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/trainer/grpo_trainer.py", line 773, in _generate_and_score_completions
+    prompt_completion_ids = unwrapped_model.generate(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+    return func(*args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/generation/utils.py", line 2223, in generate
+    result = self._sample(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/generation/utils.py", line 3214, in _sample
+    outputs = model_forward(**model_inputs, return_dict=True)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1734, in _wrapped_call_impl
+    return self._compiled_call_impl(*args, **kwargs)  # type: ignore[misc]
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/_dynamo/eval_frame.py", line 465, in _fn
+    return fn(*args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1844, in _call_impl
+    return inner()
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1790, in inner
+    result = forward_call(*args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/models/gpt2/modeling_gpt2.py", line 1062, in forward
+    transformer_outputs = self.transformer(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/models/gpt2/modeling_gpt2.py", line 910, in forward
+    outputs = self._gradient_checkpointing_func(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/_compile.py", line 32, in inner
+    return disable_fn(*args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/_dynamo/eval_frame.py", line 632, in _fn
+    return fn(*args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/utils/checkpoint.py", line 496, in checkpoint
+    ret = function(*args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/models/gpt2/modeling_gpt2.py", line 404, in forward
+    attn_outputs = self.attn(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/models/gpt2/modeling_gpt2.py", line 335, in forward
+    attn_output, attn_weights = attention_interface(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/integrations/flash_attention.py", line 50, in flash_attention_forward
+    attn_output = _flash_attention_forward(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/modeling_flash_attention_utils.py", line 305, in _flash_attention_forward
+    query_states, key_states, value_states, indices_q, cu_seq_lens, max_seq_lens = _upad_input(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/modeling_flash_attention_utils.py", line 102, in _upad_input
+    indices_k, cu_seqlens_k, max_seqlen_in_batch_k = _get_unpad_data(attention_mask)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/modeling_flash_attention_utils.py", line 53, in _get_unpad_data
+    indices = torch.nonzero(attention_mask.flatten(), as_tuple=False).flatten()
+KeyboardInterrupt
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/userhomes/minsu/symr/train.py", line 249, in <module>
+[rank0]:     main(
+[rank0]:   File "/userhomes/minsu/symr/train.py", line 183, in main
+[rank0]:     train_result = trainer.train()
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2241, in train
+[rank0]:     return inner_training_loop(
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2548, in _inner_training_loop
+[rank0]:     tr_loss_step = self.training_step(model, inputs, num_items_in_batch)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 3692, in training_step
+[rank0]:     inputs = self._prepare_inputs(inputs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/extras/profiling.py", line 87, in wrapper
+[rank0]:     return func(self, *args, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/trainer/grpo_trainer.py", line 706, in _prepare_inputs
+[rank0]:     inputs = self._generate_and_score_completions(inputs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/trainer/grpo_trainer.py", line 773, in _generate_and_score_completions
+[rank0]:     prompt_completion_ids = unwrapped_model.generate(
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+[rank0]:     return func(*args, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/generation/utils.py", line 2223, in generate
+[rank0]:     result = self._sample(
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/generation/utils.py", line 3214, in _sample
+[rank0]:     outputs = model_forward(**model_inputs, return_dict=True)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1734, in _wrapped_call_impl
+[rank0]:     return self._compiled_call_impl(*args, **kwargs)  # type: ignore[misc]
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/_dynamo/eval_frame.py", line 465, in _fn
+[rank0]:     return fn(*args, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1844, in _call_impl
+[rank0]:     return inner()
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1790, in inner
+[rank0]:     result = forward_call(*args, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/models/gpt2/modeling_gpt2.py", line 1062, in forward
+[rank0]:     transformer_outputs = self.transformer(
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+[rank0]:     return forward_call(*args, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/models/gpt2/modeling_gpt2.py", line 910, in forward
+[rank0]:     outputs = self._gradient_checkpointing_func(
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/_compile.py", line 32, in inner
+[rank0]:     return disable_fn(*args, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/_dynamo/eval_frame.py", line 632, in _fn
+[rank0]:     return fn(*args, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/utils/checkpoint.py", line 496, in checkpoint
+[rank0]:     ret = function(*args, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+[rank0]:     return forward_call(*args, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/models/gpt2/modeling_gpt2.py", line 404, in forward
+[rank0]:     attn_outputs = self.attn(
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+[rank0]:     return forward_call(*args, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/models/gpt2/modeling_gpt2.py", line 335, in forward
+[rank0]:     attn_output, attn_weights = attention_interface(
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/integrations/flash_attention.py", line 50, in flash_attention_forward
+[rank0]:     attn_output = _flash_attention_forward(
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/modeling_flash_attention_utils.py", line 305, in _flash_attention_forward
+[rank0]:     query_states, key_states, value_states, indices_q, cu_seq_lens, max_seq_lens = _upad_input(
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/modeling_flash_attention_utils.py", line 102, in _upad_input
+[rank0]:     indices_k, cu_seqlens_k, max_seqlen_in_batch_k = _get_unpad_data(attention_mask)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/modeling_flash_attention_utils.py", line 53, in _get_unpad_data
+[rank0]:     indices = torch.nonzero(attention_mask.flatten(), as_tuple=False).flatten()
+[rank0]: KeyboardInterrupt

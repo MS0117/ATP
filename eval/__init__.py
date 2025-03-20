@@ -1,0 +1,1 @@
+export PYTHONPATH="${PYTHONPATH}:/userhomes/minsu/symr"

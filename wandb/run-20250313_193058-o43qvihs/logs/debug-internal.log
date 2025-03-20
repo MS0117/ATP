@@ -1,0 +1,7 @@
+{"time":"2025-03-13T19:30:58.886164675+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/userhomes/minsu/symr/wandb/run-20250313_193058-o43qvihs/logs/debug-core.log"}
+{"time":"2025-03-13T19:30:59.024797714+09:00","level":"INFO","msg":"created new stream","id":"o43qvihs"}
+{"time":"2025-03-13T19:30:59.024839443+09:00","level":"INFO","msg":"stream: started","id":"o43qvihs"}
+{"time":"2025-03-13T19:30:59.024860272+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"o43qvihs"}
+{"time":"2025-03-13T19:30:59.024867717+09:00","level":"INFO","msg":"handler: started","stream_id":"o43qvihs"}
+{"time":"2025-03-13T19:30:59.024924244+09:00","level":"INFO","msg":"sender: started","stream_id":"o43qvihs"}
+{"time":"2025-03-13T19:30:59.492625757+09:00","level":"INFO","msg":"Starting system monitor"}

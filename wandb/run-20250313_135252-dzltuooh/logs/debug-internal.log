@@ -1,0 +1,10 @@
+{"time":"2025-03-13T13:52:53.442956862+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/userhomes/minsu/symr/wandb/run-20250313_135252-dzltuooh/logs/debug-core.log"}
+{"time":"2025-03-13T13:52:53.626848977+09:00","level":"INFO","msg":"created new stream","id":"dzltuooh"}
+{"time":"2025-03-13T13:52:53.626879615+09:00","level":"INFO","msg":"stream: started","id":"dzltuooh"}
+{"time":"2025-03-13T13:52:53.626899873+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"dzltuooh"}
+{"time":"2025-03-13T13:52:53.626926163+09:00","level":"INFO","msg":"handler: started","stream_id":"dzltuooh"}
+{"time":"2025-03-13T13:52:53.626969785+09:00","level":"INFO","msg":"sender: started","stream_id":"dzltuooh"}
+{"time":"2025-03-13T13:52:54.144049337+09:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-03-13T14:00:02.81972677+09:00","level":"INFO","msg":"stream: closing","id":"dzltuooh"}
+{"time":"2025-03-13T14:00:02.819781534+09:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-03-13T14:00:02.820302799+09:00","level":"INFO","msg":"Stopped system monitor"}

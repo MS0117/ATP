@@ -1,0 +1,7 @@
+{"time":"2025-03-14T13:43:05.126667769+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/userhomes/minsu/symr/wandb/run-20250314_134304-toehvn0l/logs/debug-core.log"}
+{"time":"2025-03-14T13:43:05.259863088+09:00","level":"INFO","msg":"created new stream","id":"toehvn0l"}
+{"time":"2025-03-14T13:43:05.259891592+09:00","level":"INFO","msg":"stream: started","id":"toehvn0l"}
+{"time":"2025-03-14T13:43:05.259941396+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"toehvn0l"}
+{"time":"2025-03-14T13:43:05.259961614+09:00","level":"INFO","msg":"handler: started","stream_id":"toehvn0l"}
+{"time":"2025-03-14T13:43:05.260005908+09:00","level":"INFO","msg":"sender: started","stream_id":"toehvn0l"}
+{"time":"2025-03-14T13:43:05.790584001+09:00","level":"INFO","msg":"Starting system monitor"}

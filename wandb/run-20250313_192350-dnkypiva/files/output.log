@@ -1,0 +1,47 @@
+  0%|                                                                                                                                                                                                            | 0/24 [00:00<?, ?it/s]Traceback (most recent call last):
+Complete launching 4 LeanServerProcesses
+TaskQueue-verifier:  32 requests popped with avg batch_size 1.0 in last period  0 waiting in queue
+  File "/userhomes/minsu/symr/train.py", line 249, in <module>
+    main(
+  File "/userhomes/minsu/symr/train.py", line 183, in main
+    train_result = trainer.train()
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2241, in train
+    return inner_training_loop(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2548, in _inner_training_loop
+    tr_loss_step = self.training_step(model, inputs, num_items_in_batch)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 3692, in training_step
+    inputs = self._prepare_inputs(inputs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/extras/profiling.py", line 87, in wrapper
+    return func(self, *args, **kwargs)
+  File "/userhomes/minsu/symr/modules/trainer.py", line 175, in _prepare_inputs
+    inputs = self._generate_and_score_completions(inputs)
+  File "/userhomes/minsu/symr/modules/trainer.py", line 329, in _generate_and_score_completions
+    output_reward_func = reward_func(prompts=prompts, completions=completions,
+  File "/userhomes/minsu/symr/modules/reward_function.py", line 766, in lean4_value_reward
+    print("rewarding start")
+  File "/userhomes/minsu/symr/modules/reward_function.py", line 94, in compute_tactic_scores_for_output
+    mark_char_scores(pos_scores, full_text,True, out_data["messages"])
+KeyError: 'messages'
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/userhomes/minsu/symr/train.py", line 249, in <module>
+[rank0]:     main(
+[rank0]:   File "/userhomes/minsu/symr/train.py", line 183, in main
+[rank0]:     train_result = trainer.train()
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2241, in train
+[rank0]:     return inner_training_loop(
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2548, in _inner_training_loop
+[rank0]:     tr_loss_step = self.training_step(model, inputs, num_items_in_batch)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 3692, in training_step
+[rank0]:     inputs = self._prepare_inputs(inputs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/extras/profiling.py", line 87, in wrapper
+[rank0]:     return func(self, *args, **kwargs)
+[rank0]:   File "/userhomes/minsu/symr/modules/trainer.py", line 175, in _prepare_inputs
+[rank0]:     inputs = self._generate_and_score_completions(inputs)
+[rank0]:   File "/userhomes/minsu/symr/modules/trainer.py", line 329, in _generate_and_score_completions
+[rank0]:     output_reward_func = reward_func(prompts=prompts, completions=completions,
+[rank0]:   File "/userhomes/minsu/symr/modules/reward_function.py", line 766, in lean4_value_reward
+[rank0]:     print("rewarding start")
+[rank0]:   File "/userhomes/minsu/symr/modules/reward_function.py", line 94, in compute_tactic_scores_for_output
+[rank0]:     mark_char_scores(pos_scores, full_text,True, out_data["messages"])
+[rank0]: KeyError: 'messages'
+Exception ignored in:

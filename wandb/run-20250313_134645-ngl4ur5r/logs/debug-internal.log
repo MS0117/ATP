@@ -1,0 +1,10 @@
+{"time":"2025-03-13T13:46:45.630311277+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/userhomes/minsu/symr/wandb/run-20250313_134645-ngl4ur5r/logs/debug-core.log"}
+{"time":"2025-03-13T13:46:45.781755892+09:00","level":"INFO","msg":"created new stream","id":"ngl4ur5r"}
+{"time":"2025-03-13T13:46:45.78180243+09:00","level":"INFO","msg":"stream: started","id":"ngl4ur5r"}
+{"time":"2025-03-13T13:46:45.781819973+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"ngl4ur5r"}
+{"time":"2025-03-13T13:46:45.781855069+09:00","level":"INFO","msg":"sender: started","stream_id":"ngl4ur5r"}
+{"time":"2025-03-13T13:46:45.781881469+09:00","level":"INFO","msg":"handler: started","stream_id":"ngl4ur5r"}
+{"time":"2025-03-13T13:46:46.293750716+09:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-03-13T13:48:17.997987329+09:00","level":"INFO","msg":"stream: closing","id":"ngl4ur5r"}
+{"time":"2025-03-13T13:48:17.998063544+09:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-03-13T13:48:17.998877902+09:00","level":"INFO","msg":"Stopped system monitor"}

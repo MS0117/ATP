@@ -1,0 +1,15 @@
+{"time":"2025-03-13T00:52:47.012450113+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/userhomes/minsu/symr/wandb/run-20250313_005246-akql5oik/logs/debug-core.log"}
+{"time":"2025-03-13T00:52:47.159143307+09:00","level":"INFO","msg":"created new stream","id":"akql5oik"}
+{"time":"2025-03-13T00:52:47.159166561+09:00","level":"INFO","msg":"stream: started","id":"akql5oik"}
+{"time":"2025-03-13T00:52:47.159194103+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"akql5oik"}
+{"time":"2025-03-13T00:52:47.159210214+09:00","level":"INFO","msg":"handler: started","stream_id":"akql5oik"}
+{"time":"2025-03-13T00:52:47.159250009+09:00","level":"INFO","msg":"sender: started","stream_id":"akql5oik"}
+{"time":"2025-03-13T00:52:47.657161903+09:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-03-13T00:52:48.16542905+09:00","level":"INFO","msg":"stream: closing","id":"akql5oik"}
+{"time":"2025-03-13T00:52:48.75227354+09:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-03-13T00:52:48.753284882+09:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-03-13T00:52:49.989200791+09:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-03-13T00:52:50.442720183+09:00","level":"INFO","msg":"handler: closed","stream_id":"akql5oik"}
+{"time":"2025-03-13T00:52:50.442761651+09:00","level":"INFO","msg":"writer: Close: closed","stream_id":"akql5oik"}
+{"time":"2025-03-13T00:52:50.442781729+09:00","level":"INFO","msg":"sender: closed","stream_id":"akql5oik"}
+{"time":"2025-03-13T00:52:50.462900484+09:00","level":"INFO","msg":"stream: closed","id":"akql5oik"}

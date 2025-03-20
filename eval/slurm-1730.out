@@ -1,0 +1,45 @@
+INFO 03-19 13:31:14 __init__.py:183] Automatically detected platform cuda.
+INFO 03-19 13:31:31 config.py:2314] Downcasting torch.float32 to torch.float16.
+Traceback (most recent call last):
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/userhomes/minsu/symr/eval/step1_inference.py", line 71, in <module>
+    model = LLM(model=model_name, seed=1, trust_remote_code=True, swap_space=8, tensor_parallel_size=args.gpu, max_model_len=4096)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/vllm/utils.py", line 1039, in inner
+    return fn(*args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/vllm/entrypoints/llm.py", line 239, in __init__
+    self.llm_engine = self.engine_class.from_engine_args(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/vllm/engine/llm_engine.py", line 479, in from_engine_args
+    engine_config = engine_args.create_engine_config(usage_context)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/vllm/engine/arg_utils.py", line 1047, in create_engine_config
+    model_config = self.create_model_config()
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/vllm/engine/arg_utils.py", line 972, in create_model_config
+    return ModelConfig(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/vllm/config.py", line 334, in __init__
+    self.max_model_len = _get_and_verify_max_len(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/vllm/config.py", line 2446, in _get_and_verify_max_len
+    raise ValueError(
+ValueError: User-specified max_model_len (4096) is greater than the derived max_model_len (max_position_embeddings=1024 or model_max_length=None in model's config.json). This may lead to incorrect model outputs or CUDA errors. To allow overriding this maximum, set the env var VLLM_ALLOW_LONG_MAX_MODEL_LEN=1
+✅ Added project root to sys.path: /userhomes/minsu/symr
+[2025-03-19 13:31:52,779] [INFO] [real_accelerator.py:219:get_accelerator] Setting ds_accelerator to cuda (auto detect)
+Warning: The cache directory for DeepSpeed Triton autotune, /userhomes/minsu/.triton/autotune, appears to be on an NFS system. While this is generally acceptable, if you experience slowdowns or hanging when DeepSpeed exits, it is recommended to set the TRITON_CACHE_DIR environment variable to a non-NFS path.
+INFO 03-19 13:31:59 __init__.py:183] Automatically detected platform cuda.
+Complete launching 8 LeanServerProcesses
+Process Process-11:
+Traceback (most recent call last):
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/userhomes/minsu/symr/modules/prover/lean/verifier.py", line 149, in _monitor
+    subprocess.run(['killall', 'repl', f'--older-than={int(self.timeout) + 10}s'], capture_output=True)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/subprocess.py", line 503, in run
+    with Popen(*popenargs, **kwargs) as process:
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/subprocess.py", line 971, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/subprocess.py", line 1863, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: 'killall'
+All 8 LeanServerProcesses stopped

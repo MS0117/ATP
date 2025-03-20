@@ -1,0 +1,7 @@
+{"time":"2025-03-17T16:14:42.976390664+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/userhomes/minsu/symr/wandb/run-20250317_161442-lssx7sxw/logs/debug-core.log"}
+{"time":"2025-03-17T16:14:43.115863255+09:00","level":"INFO","msg":"created new stream","id":"lssx7sxw"}
+{"time":"2025-03-17T16:14:43.115917567+09:00","level":"INFO","msg":"stream: started","id":"lssx7sxw"}
+{"time":"2025-03-17T16:14:43.115963955+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"lssx7sxw"}
+{"time":"2025-03-17T16:14:43.115995915+09:00","level":"INFO","msg":"handler: started","stream_id":"lssx7sxw"}
+{"time":"2025-03-17T16:14:43.116042443+09:00","level":"INFO","msg":"sender: started","stream_id":"lssx7sxw"}
+{"time":"2025-03-17T16:14:43.692836987+09:00","level":"INFO","msg":"Starting system monitor"}

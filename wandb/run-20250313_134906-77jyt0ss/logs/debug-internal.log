@@ -1,0 +1,10 @@
+{"time":"2025-03-13T13:49:06.83049854+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/userhomes/minsu/symr/wandb/run-20250313_134906-77jyt0ss/logs/debug-core.log"}
+{"time":"2025-03-13T13:49:06.972353185+09:00","level":"INFO","msg":"created new stream","id":"77jyt0ss"}
+{"time":"2025-03-13T13:49:06.972375837+09:00","level":"INFO","msg":"stream: started","id":"77jyt0ss"}
+{"time":"2025-03-13T13:49:06.972405013+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"77jyt0ss"}
+{"time":"2025-03-13T13:49:06.972433717+09:00","level":"INFO","msg":"sender: started","stream_id":"77jyt0ss"}
+{"time":"2025-03-13T13:49:06.972462862+09:00","level":"INFO","msg":"handler: started","stream_id":"77jyt0ss"}
+{"time":"2025-03-13T13:49:07.514165148+09:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-03-13T13:49:27.983929231+09:00","level":"INFO","msg":"stream: closing","id":"77jyt0ss"}
+{"time":"2025-03-13T13:49:27.983997129+09:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-03-13T13:49:27.984641637+09:00","level":"INFO","msg":"Stopped system monitor"}

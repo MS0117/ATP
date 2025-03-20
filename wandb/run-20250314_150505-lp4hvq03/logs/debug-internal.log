@@ -1,0 +1,10 @@
+{"time":"2025-03-14T15:05:06.451544959+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/userhomes/minsu/symr/wandb/run-20250314_150505-lp4hvq03/logs/debug-core.log"}
+{"time":"2025-03-14T15:05:06.655299994+09:00","level":"INFO","msg":"created new stream","id":"lp4hvq03"}
+{"time":"2025-03-14T15:05:06.655330873+09:00","level":"INFO","msg":"stream: started","id":"lp4hvq03"}
+{"time":"2025-03-14T15:05:06.655359797+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"lp4hvq03"}
+{"time":"2025-03-14T15:05:06.655370117+09:00","level":"INFO","msg":"handler: started","stream_id":"lp4hvq03"}
+{"time":"2025-03-14T15:05:06.655418488+09:00","level":"INFO","msg":"sender: started","stream_id":"lp4hvq03"}
+{"time":"2025-03-14T15:05:07.216432286+09:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-03-14T15:06:38.923439393+09:00","level":"INFO","msg":"stream: closing","id":"lp4hvq03"}
+{"time":"2025-03-14T15:06:38.923504667+09:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-03-14T15:06:38.924338353+09:00","level":"INFO","msg":"Stopped system monitor"}

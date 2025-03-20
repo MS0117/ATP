@@ -1,0 +1,15 @@
+{"time":"2025-03-14T19:50:34.504874765+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/userhomes/minsu/symr/wandb/run-20250314_195033-zege6csk/logs/debug-core.log"}
+{"time":"2025-03-14T19:50:34.664071407+09:00","level":"INFO","msg":"created new stream","id":"zege6csk"}
+{"time":"2025-03-14T19:50:34.664102356+09:00","level":"INFO","msg":"stream: started","id":"zege6csk"}
+{"time":"2025-03-14T19:50:34.664154634+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"zege6csk"}
+{"time":"2025-03-14T19:50:34.664191133+09:00","level":"INFO","msg":"sender: started","stream_id":"zege6csk"}
+{"time":"2025-03-14T19:50:34.664229476+09:00","level":"INFO","msg":"handler: started","stream_id":"zege6csk"}
+{"time":"2025-03-14T19:50:35.160799022+09:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-03-14T19:50:38.158631643+09:00","level":"INFO","msg":"stream: closing","id":"zege6csk"}
+{"time":"2025-03-14T19:50:38.15866201+09:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-03-14T19:50:38.159211779+09:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-03-14T19:50:39.36708882+09:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-03-14T19:50:39.872234758+09:00","level":"INFO","msg":"handler: closed","stream_id":"zege6csk"}
+{"time":"2025-03-14T19:50:39.872269764+09:00","level":"INFO","msg":"writer: Close: closed","stream_id":"zege6csk"}
+{"time":"2025-03-14T19:50:39.872303498+09:00","level":"INFO","msg":"sender: closed","stream_id":"zege6csk"}
+{"time":"2025-03-14T19:50:39.912160383+09:00","level":"INFO","msg":"stream: closed","id":"zege6csk"}

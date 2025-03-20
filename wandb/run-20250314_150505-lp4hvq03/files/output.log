@@ -1,0 +1,73 @@
+  0%|                                                                                                                                                                                                            | 0/12 [00:00<?, ?it/s]Traceback (most recent call last):
+promts ['Complete the following Lean 4 code with explanatory comments preceding each line of code:\n\n```lean4\nimport Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- For what real value of $k$ is $\\frac{13-\\sqrt{131}}{4}$ a root of $2x^2-13x+k$? Show that it is $\\frac{19}{4}$.-/\ntheorem mathd_algebra_116 (k x : ℝ) (h₀ : x = (13 - Real.sqrt 131) / 4)\n    (h₁ : 2 * x ^ 2 - 13 * x + k = 0) : k = 19 / 4 := by\n', 'Complete the following Lean 4 code with explanatory comments preceding each line of code:\n\n```lean4\nimport Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- For what real value of $k$ is $\\frac{13-\\sqrt{131}}{4}$ a root of $2x^2-13x+k$? Show that it is $\\frac{19}{4}$.-/\ntheorem mathd_algebra_116 (k x : ℝ) (h₀ : x = (13 - Real.sqrt 131) / 4)\n    (h₁ : 2 * x ^ 2 - 13 * x + k = 0) : k = 19 / 4 := by\n', 'Complete the following Lean 4 code with explanatory comments preceding each line of code:\n\n```lean4\nimport Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- For what real value of $k$ is $\\frac{13-\\sqrt{131}}{4}$ a root of $2x^2-13x+k$? Show that it is $\\frac{19}{4}$.-/\ntheorem mathd_algebra_116 (k x : ℝ) (h₀ : x = (13 - Real.sqrt 131) / 4)\n    (h₁ : 2 * x ^ 2 - 13 * x + k = 0) : k = 19 / 4 := by\n', 'Complete the following Lean 4 code with explanatory comments preceding each line of code:\n\n```lean4\nimport Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- For what real value of $k$ is $\\frac{13-\\sqrt{131}}{4}$ a root of $2x^2-13x+k$? Show that it is $\\frac{19}{4}$.-/\ntheorem mathd_algebra_116 (k x : ℝ) (h₀ : x = (13 - Real.sqrt 131) / 4)\n    (h₁ : 2 * x ^ 2 - 13 * x + k = 0) : k = 19 / 4 := by\n', 'Complete the following Lean 4 code with explanatory comments preceding each line of code:\n\n```lean4\nimport Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- Suppose $r^{}_{}$ is a [[real number]] for which\n<div style="text-align:center">$\n\\left\\lfloor r + \\frac{19}{100} \\right\\rfloor + \\left\\lfloor r + \\frac{20}{100} \\right\\rfloor + \\left\\lfloor r + \\frac{21}{100} \\right\\rfloor + \\cdots + \\left\\lfloor r + \\frac{91}{100} \\right\\rfloor = 546.\n$</div>\nFind $\\lfloor 100r \\rfloor$. (For real $x^{}_{}$, $\\lfloor x \\rfloor$ is the [[floor function|greatest integer]] less than or equal to $x^{}_{}$.) Show that it is 743.-/\ntheorem aime_1991_p6 (r : ℝ) (h₀ : (∑ k in Finset.Icc (19 : ℕ) 91, Int.floor (r + k / 100)) = 546) :\n  Int.floor (100 * r) = 743 := by\n', 'Complete the following Lean 4 code with explanatory comments preceding each line of code:\n\n```lean4\nimport Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- Suppose $r^{}_{}$ is a [[real number]] for which\n<div style="text-align:center">$\n\\left\\lfloor r + \\frac{19}{100} \\right\\rfloor + \\left\\lfloor r + \\frac{20}{100} \\right\\rfloor + \\left\\lfloor r + \\frac{21}{100} \\right\\rfloor + \\cdots + \\left\\lfloor r + \\frac{91}{100} \\right\\rfloor = 546.\n$</div>\nFind $\\lfloor 100r \\rfloor$. (For real $x^{}_{}$, $\\lfloor x \\rfloor$ is the [[floor function|greatest integer]] less than or equal to $x^{}_{}$.) Show that it is 743.-/\ntheorem aime_1991_p6 (r : ℝ) (h₀ : (∑ k in Finset.Icc (19 : ℕ) 91, Int.floor (r + k / 100)) = 546) :\n  Int.floor (100 * r) = 743 := by\n', 'Complete the following Lean 4 code with explanatory comments preceding each line of code:\n\n```lean4\nimport Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- Suppose $r^{}_{}$ is a [[real number]] for which\n<div style="text-align:center">$\n\\left\\lfloor r + \\frac{19}{100} \\right\\rfloor + \\left\\lfloor r + \\frac{20}{100} \\right\\rfloor + \\left\\lfloor r + \\frac{21}{100} \\right\\rfloor + \\cdots + \\left\\lfloor r + \\frac{91}{100} \\right\\rfloor = 546.\n$</di
+Complete launching 4 LeanServerProcesses
+rewarding start
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+  File "/userhomes/minsu/symr/train.py", line 249, in <module>
+    main(
+  File "/userhomes/minsu/symr/train.py", line 183, in main
+    train_result = trainer.train()
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2241, in train
+    return inner_training_loop(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2548, in _inner_training_loop
+    tr_loss_step = self.training_step(model, inputs, num_items_in_batch)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 3692, in training_step
+    inputs = self._prepare_inputs(inputs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/extras/profiling.py", line 87, in wrapper
+    return func(self, *args, **kwargs)
+  File "/userhomes/minsu/symr/modules/trainer.py", line 178, in _prepare_inputs
+    inputs = self._generate_and_score_completions(inputs)
+  File "/userhomes/minsu/symr/modules/trainer.py", line 340, in _generate_and_score_completions
+    output_reward_func = reward_func(prompts=prompts, completions=completions,
+  File "/userhomes/minsu/symr/modules/reward_function.py", line 775, in lean4_value_reward
+    all_token_scores, all_token_texts = compute_tactic_scores_for_output(
+  File "/userhomes/minsu/symr/modules/reward_function.py", line 166, in compute_tactic_scores_for_output
+    mark_char_scores(pos_scores, full_text, True, out_data["errors"])
+  File "/userhomes/minsu/symr/modules/reward_function.py", line 39, in mark_char_scores
+    end_line = item["endPos"]["line"]
+TypeError: 'NoneType' object is not subscriptable
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/userhomes/minsu/symr/train.py", line 249, in <module>
+[rank0]:     main(
+[rank0]:   File "/userhomes/minsu/symr/train.py", line 183, in main
+[rank0]:     train_result = trainer.train()
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2241, in train
+[rank0]:     return inner_training_loop(
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2548, in _inner_training_loop
+[rank0]:     tr_loss_step = self.training_step(model, inputs, num_items_in_batch)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 3692, in training_step
+[rank0]:     inputs = self._prepare_inputs(inputs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/extras/profiling.py", line 87, in wrapper
+[rank0]:     return func(self, *args, **kwargs)
+[rank0]:   File "/userhomes/minsu/symr/modules/trainer.py", line 178, in _prepare_inputs
+[rank0]:     inputs = self._generate_and_score_completions(inputs)
+[rank0]:   File "/userhomes/minsu/symr/modules/trainer.py", line 340, in _generate_and_score_completions
+[rank0]:     output_reward_func = reward_func(prompts=prompts, completions=completions,
+[rank0]:   File "/userhomes/minsu/symr/modules/reward_function.py", line 775, in lean4_value_reward
+[rank0]:     all_token_scores, all_token_texts = compute_tactic_scores_for_output(
+[rank0]:   File "/userhomes/minsu/symr/modules/reward_function.py", line 166, in compute_tactic_scores_for_output
+[rank0]:     mark_char_scores(pos_scores, full_text, True, out_data["errors"])
+[rank0]:   File "/userhomes/minsu/symr/modules/reward_function.py", line 39, in mark_char_scores
+[rank0]:     end_line = item["endPos"]["line"]
+[rank0]: TypeError: 'NoneType' object is not subscriptable
+TaskQueue-verifier:  32 requests popped with avg batch_size 1.0 in last period  0 waiting in queue
+Exception ignored in: <module 'threading' from '/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/threading.py'>
+Traceback (most recent call last):
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/threading.py", line 1567, in _shutdown
+    lock.acquire()
+KeyboardInterrupt:

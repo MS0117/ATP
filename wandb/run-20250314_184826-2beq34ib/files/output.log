@@ -1,0 +1,713 @@
+  0%|                                                                                                                                                                                                            | 0/12 [00:00<?, ?it/s]
+len(output.token_ids 13
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 210
+len(output.token_ids 28
+len(output.token_ids 16
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+Complete launching 4 LeanServerProcesses
+rewarding start
+len(seq) 12
+len(seq) 256
+len(seq) 256
+len(seq) 255
+len(seq) 256
+len(seq) 254
+len(seq) 256
+len(seq) 256
+len(seq) 254
+len(seq) 255
+len(seq) 255
+len(seq) 256
+len(seq) 255
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 208
+len(seq) 27
+len(seq) 15
+len(seq) 256
+len(seq) 256
+len(seq) 255
+len(seq) 256
+len(seq) 255
+len(seq) 255
+len(seq) 255
+len(seq) 256
+len(seq) 256
+len(seq) 256
+padded_scores tensor([[0.0000, 0.0000, 0.0000,  ..., 0.0000, 0.0000, 0.0000],
+        [0.0000, 0.0000, 0.0000,  ..., 0.0000, 0.0000, 0.0000],
+        [0.0000, 0.0000, 0.0000,  ..., 0.0000, 0.0000, 0.0000],
+        ...,
+        [1.0000, 1.0000, 0.5000,  ..., 0.0000, 0.0000, 0.0000],
+        [0.0000, 0.0000, 0.0000,  ..., 0.0000, 0.0000, 0.0000],
+        [0.0000, 0.0000, 0.0000,  ..., 0.0000, 0.0000, 0.0000]])
+All 4 LeanServerProcesses stopped
+rewards tensor(0.0018, device='cuda:0')
+completion_ids.size torch.Size([32, 256])
+completion_mask.size torch.Size([32, 256])
+[rank0]:W0314 18:48:45.841000 1081618 site-packages/torch/_dynamo/variables/tensor.py:776] [21/0]     torch._dynamo.config.capture_scalar_outputs = True
+[rank0]:W0314 18:48:45.841000 1081618 site-packages/torch/_dynamo/variables/tensor.py:776] [21/0] or:
+[rank0]:W0314 18:48:45.841000 1081618 site-packages/torch/_dynamo/variables/tensor.py:776] [21/0]     env TORCHDYNAMO_CAPTURE_SCALAR_OUTPUTS=1
+[rank0]:W0314 18:48:45.841000 1081618 site-packages/torch/_dynamo/variables/tensor.py:776] [21/0] to include these operations in the captured graph.
+[rank0]:W0314 18:48:45.841000 1081618 site-packages/torch/_dynamo/variables/tensor.py:776] [21/0]
+[rank0]:W0314 18:48:45.841000 1081618 site-packages/torch/_dynamo/variables/tensor.py:776] [21/0] Graph break: from user code at:
+[rank0]:W0314 18:48:45.841000 1081618 site-packages/torch/_dynamo/variables/tensor.py:776] [21/0]   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/models/gpt2/modeling_gpt2.py", line 827, in torch_dynamo_resume_in_forward_at_820
+[rank0]:W0314 18:48:45.841000 1081618 site-packages/torch/_dynamo/variables/tensor.py:776] [21/0]     attention_mask = attention_mask if (attention_mask is not None and 0 in attention_mask) else None
+[rank0]:W0314 18:48:45.841000 1081618 site-packages/torch/_dynamo/variables/tensor.py:776] [21/0]
+[rank0]:W0314 18:48:45.841000 1081618 site-packages/torch/_dynamo/variables/tensor.py:776] [21/0]
+num_batch 32
+self.num_generations 4
+self._metrics[mode] defaultdict(<class 'list'>, {'completion_length': [232.34375], 'rewards/lean4_value_reward': [0.0017700223252177238], 'reward': [0.0017700223252177238], 'kl': [1.0], 'clip_ratio': [0.0]})
+loss tensor(-0.1328, device='cuda:0', grad_fn=<DivBackward0>)
+  8%|████████████████▎                                                                                                                                                                                   | 1/12 [00:19<03:36, 19.72s/it]
+{'loss': -0.1328, 'grad_norm': 19.240792395629523, 'learning_rate': 5e-06, 'completion_length': 232.34375, 'rewards/lean4_value_reward': 0.0017700223252177238, 'reward': 0.0017700223252177238, 'kl': 1.0, 'clip_ratio': 0.0, 'epoch': 0.25}
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+Complete launching 4 LeanServerProcesses
+rewarding start
+len(seq) 256
+len(seq) 253
+len(seq) 254
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 254
+len(seq) 254
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 254
+len(seq) 256
+len(seq) 256
+len(seq) 252
+len(seq) 252
+len(seq) 256
+len(seq) 256
+len(seq) 255
+len(seq) 256
+len(seq) 255
+len(seq) 256
+len(seq) 256
+len(seq) 250
+len(seq) 254
+len(seq) 255
+padded_scores tensor([[0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.]])
+All 4 LeanServerProcesses stopped
+rewards tensor(0.0003, device='cuda:0')
+completion_ids.size torch.Size([32, 256])
+completion_mask.size torch.Size([32, 256])
+num_batch 32
+self.num_generations 4
+self._metrics[mode] defaultdict(<class 'list'>, {'completion_length': [256.0], 'rewards/lean4_value_reward': [0.0003418000414967537], 'reward': [0.0003418000414967537], 'kl': [1.0], 'clip_ratio': [0.0]})
+loss tensor(1.5498e-08, device='cuda:0', grad_fn=<DivBackward0>)
+[2025-03-14 18:49:04,550] [WARNING] [stage3.py:2105:step] 2 pytorch allocator cache flushes since last step. this happens when there is high memory pressure and is detrimental to performance. if this is happening frequently consider adjusting settings to reduce memory consumption. If you are unable to make the cache flushes go away consider adding get_accelerator().empty_cache() calls in your training loop to ensure that all ranks flush their caches at the same time
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+Complete launching 4 LeanServerProcesses
+rewarding start
+len(seq) 254
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 248
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 255
+len(seq) 256
+len(seq) 252
+len(seq) 256
+len(seq) 255
+len(seq) 256
+len(seq) 256
+len(seq) 254
+len(seq) 251
+len(seq) 256
+len(seq) 256
+len(seq) 255
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+padded_scores tensor([[0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.]])
+All 4 LeanServerProcesses stopped
+rewards tensor(0.0005, device='cuda:0')
+completion_ids.size torch.Size([32, 256])
+completion_mask.size torch.Size([32, 256])
+num_batch 32
+self.num_generations 4
+self._metrics[mode] defaultdict(<class 'list'>, {'completion_length': [256.0, 256.0], 'rewards/lean4_value_reward': [0.0003418000414967537, 0.0005086278542876244], 'reward': [0.0003418000414967537, 0.0005086278542876244], 'kl': [1.0, 1.0], 'clip_ratio': [0.0, 0.0]})
+loss tensor(6.0536e-09, device='cuda:0', grad_fn=<DivBackward0>)
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 32
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 249
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+Complete launching 4 LeanServerProcesses
+rewarding start
+len(seq) 256
+len(seq) 252
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 255
+len(seq) 254
+len(seq) 250
+len(seq) 254
+len(seq) 255
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 31
+len(seq) 247
+len(seq) 255
+len(seq) 256
+len(seq) 256
+len(seq) 248
+len(seq) 252
+len(seq) 256
+len(seq) 255
+len(seq) 255
+len(seq) 256
+len(seq) 256
+padded_scores tensor([[0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.]])
+All 4 LeanServerProcesses stopped
+rewards tensor(0.0004, device='cuda:0')
+completion_ids.size torch.Size([32, 256])
+completion_mask.size torch.Size([32, 256])
+num_batch 32
+self.num_generations 4
+self._metrics[mode] defaultdict(<class 'list'>, {'completion_length': [256.0, 256.0, 248.78125], 'rewards/lean4_value_reward': [0.0003418000414967537, 0.0005086278542876244, 0.00044759083539247513], 'reward': [0.0003418000414967537, 0.0005086278542876244, 0.00044759083539247513], 'kl': [1.0, 1.0, 1.0], 'clip_ratio': [0.0, 0.0, 0.0]})
+loss tensor(-0.0644, device='cuda:0', grad_fn=<DivBackward0>)
+[INFO|configuration_utils.py:423] 2025-03-14 18:49:32,026 >> Configuration saved in ./checkpoint-4/config.json
+[INFO|configuration_utils.py:909] 2025-03-14 18:49:32,069 >> Configuration saved in ./checkpoint-4/generation_config.json
+[INFO|modeling_utils.py:3040] 2025-03-14 18:49:34,623 >> Model weights saved in ./checkpoint-4/model.safetensors
+[INFO|tokenization_utils_base.py:2500] 2025-03-14 18:49:34,669 >> tokenizer config file saved in ./checkpoint-4/tokenizer_config.json
+[INFO|tokenization_utils_base.py:2509] 2025-03-14 18:49:34,728 >> Special tokens file saved in ./checkpoint-4/special_tokens_map.json
+[2025-03-14 18:49:35,015] [INFO] [logging.py:129:log_dist] [Rank 0] [Torch] Checkpoint global_step4 is about to be saved!
+[2025-03-14 18:49:35,020] [INFO] [logging.py:129:log_dist] [Rank 0] Saving model checkpoint: ./checkpoint-4/global_step4/zero_pp_rank_0_mp_rank_00_model_states.pt
+[2025-03-14 18:49:35,020] [INFO] [torch_checkpoint_engine.py:21:save] [Torch] Saving ./checkpoint-4/global_step4/zero_pp_rank_0_mp_rank_00_model_states.pt...
+[2025-03-14 18:49:35,065] [INFO] [torch_checkpoint_engine.py:23:save] [Torch] Saved ./checkpoint-4/global_step4/zero_pp_rank_0_mp_rank_00_model_states.pt.
+[2025-03-14 18:49:35,066] [INFO] [torch_checkpoint_engine.py:21:save] [Torch] Saving ./checkpoint-4/global_step4/bf16_zero_pp_rank_0_mp_rank_00_optim_states.pt...
+[2025-03-14 18:49:42,829] [INFO] [torch_checkpoint_engine.py:23:save] [Torch] Saved ./checkpoint-4/global_step4/bf16_zero_pp_rank_0_mp_rank_00_optim_states.pt.
+[2025-03-14 18:49:42,939] [INFO] [engine.py:3536:_save_zero_checkpoint] zero checkpoint saved ./checkpoint-4/global_step4/bf16_zero_pp_rank_0_mp_rank_00_optim_states.pt
+[2025-03-14 18:49:42,940] [INFO] [torch_checkpoint_engine.py:33:commit] [Torch] Checkpoint global_step4 is ready now!
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 22
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 94
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+Complete launching 4 LeanServerProcesses
+rewarding start
+len(seq) 256
+len(seq) 256
+len(seq) 255
+len(seq) 250
+len(seq) 256
+len(seq) 256
+len(seq) 255
+len(seq) 256
+len(seq) 249
+len(seq) 256
+len(seq) 255
+len(seq) 255
+len(seq) 256
+len(seq) 256
+len(seq) 254
+len(seq) 256
+len(seq) 256
+len(seq) 255
+len(seq) 256
+len(seq) 21
+len(seq) 256
+len(seq) 256
+len(seq) 91
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 254
+len(seq) 251
+len(seq) 254
+len(seq) 256
+len(seq) 256
+padded_scores tensor([[0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.]])
+All 4 LeanServerProcesses stopped
+rewards tensor(0., device='cuda:0')
+completion_ids.size torch.Size([32, 256])
+completion_mask.size torch.Size([32, 256])
+num_batch 32
+self.num_generations 4
+self._metrics[mode] defaultdict(<class 'list'>, {'completion_length': [256.0, 256.0, 248.78125, 243.625], 'rewards/lean4_value_reward': [0.0003418000414967537, 0.0005086278542876244, 0.00044759083539247513, 0.0], 'reward': [0.0003418000414967537, 0.0005086278542876244, 0.00044759083539247513, 0.0], 'kl': [1.0, 1.0, 1.0, 1.0], 'clip_ratio': [0.0, 0.0, 0.0, 0.0]})
+loss tensor(-0.1020, device='cuda:0', grad_fn=<DivBackward0>)
+ 42%|█████████████████████████████████████████████████████████████████████████████████▋                                                                                                                  | 5/12 [01:27<02:08, 18.29s/it]
+{'loss': -0.0416, 'grad_norm': 20.949962739708468, 'learning_rate': 7.938926261462366e-06, 'completion_length': 251.1015625, 'rewards/lean4_value_reward': 0.0003245046827942133, 'reward': 0.0003245046827942133, 'kl': 1.0, 'clip_ratio': 0.0, 'epoch': 1.25}
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 249
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+Complete launching 4 LeanServerProcesses
+rewarding start
+len(seq) 255
+len(seq) 255
+len(seq) 256
+len(seq) 255
+len(seq) 255
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 254
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 253
+len(seq) 254
+len(seq) 255
+len(seq) 255
+len(seq) 246
+len(seq) 249
+len(seq) 255
+len(seq) 256
+len(seq) 255
+len(seq) 256
+len(seq) 256
+len(seq) 254
+len(seq) 253
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 253
+len(seq) 256
+padded_scores tensor([[0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.]])
+All 4 LeanServerProcesses stopped
+rewards tensor(0.0006, device='cuda:0')
+completion_ids.size torch.Size([32, 256])
+completion_mask.size torch.Size([32, 256])
+num_batch 32
+self.num_generations 4
+self._metrics[mode] defaultdict(<class 'list'>, {'completion_length': [255.78125], 'rewards/lean4_value_reward': [0.0006001773290336132], 'reward': [0.0006001773290336132], 'kl': [1.0], 'clip_ratio': [0.0]})
+loss tensor(-0.0017, device='cuda:0', grad_fn=<DivBackward0>)
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 137
+len(output.token_ids 256
+Complete launching 4 LeanServerProcesses
+rewarding start
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 255
+len(seq) 256
+len(seq) 256
+len(seq) 255
+len(seq) 256
+len(seq) 256
+len(seq) 255
+len(seq) 256
+len(seq) 256
+len(seq) 255
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 255
+len(seq) 256
+len(seq) 256
+len(seq) 255
+len(seq) 256
+len(seq) 255
+len(seq) 255
+len(seq) 254
+len(seq) 256
+len(seq) 252
+len(seq) 256
+len(seq) 247
+len(seq) 256
+len(seq) 136
+len(seq) 255
+padded_scores tensor([[0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.]])
+All 4 LeanServerProcesses stopped
+rewards tensor(0.0005, device='cuda:0')
+completion_ids.size torch.Size([32, 256])
+completion_mask.size torch.Size([32, 256])
+num_batch 32
+self.num_generations 4
+self._metrics[mode] defaultdict(<class 'list'>, {'completion_length': [255.78125, 252.28125], 'rewards/lean4_value_reward': [0.0006001773290336132, 0.0005493136122822762], 'reward': [0.0006001773290336132, 0.0005493136122822762], 'kl': [1.0, 1.0], 'clip_ratio': [0.0, 0.0]})
+loss tensor(-0.0294, device='cuda:0', grad_fn=<DivBackward0>)
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 76
+len(output.token_ids 243
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 181
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 150
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+len(output.token_ids 256
+Complete launching 4 LeanServerProcesses
+rewarding start
+len(seq) 259
+len(seq) 256
+len(seq) 256
+len(seq) 252
+len(seq) 75
+len(seq) 242
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 255
+len(seq) 254
+len(seq) 253
+len(seq) 256
+len(seq) 180
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 256
+len(seq) 254
+len(seq) 256
+len(seq) 254
+len(seq) 256
+len(seq) 254
+len(seq) 148
+len(seq) 256
+len(seq) 256
+len(seq) 251
+len(seq) 256
+len(seq) 251
+len(seq) 255
+len(seq) 256
+padded_scores tensor([[0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        ...,
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.],
+        [0., 0., 0.,  ..., 0., 0., 0.]])
+All 4 LeanServerProcesses stopped
+  File "/userhomes/minsu/symr/train.py", line 249, in <module>
+    main(
+  File "/userhomes/minsu/symr/train.py", line 183, in main
+    train_result = trainer.train()
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2241, in train
+    return inner_training_loop(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2548, in _inner_training_loop
+    tr_loss_step = self.training_step(model, inputs, num_items_in_batch)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 3692, in training_step
+    inputs = self._prepare_inputs(inputs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/extras/profiling.py", line 87, in wrapper
+    return func(self, *args, **kwargs)
+  File "/userhomes/minsu/symr/modules/trainer.py", line 178, in _prepare_inputs
+    inputs = self._generate_and_score_completions(inputs)
+  File "/userhomes/minsu/symr/modules/trainer.py", line 387, in _generate_and_score_completions
+    rewards_per_func = masked_whiten(rewards_per_func, mask=value_mask, shift_mean=False)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/core.py", line 72, in masked_whiten
+    mean, var = masked_mean(values, mask), masked_var(values, mask)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/core.py", line 48, in masked_mean
+    return (values * mask).sum() / mask.sum()
+RuntimeError: The size of tensor a (259) must match the size of tensor b (256) at non-singleton dimension 1
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/userhomes/minsu/symr/train.py", line 249, in <module>
+[rank0]:     main(
+[rank0]:   File "/userhomes/minsu/symr/train.py", line 183, in main
+[rank0]:     train_result = trainer.train()
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2241, in train
+[rank0]:     return inner_training_loop(
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2548, in _inner_training_loop
+[rank0]:     tr_loss_step = self.training_step(model, inputs, num_items_in_batch)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 3692, in training_step
+[rank0]:     inputs = self._prepare_inputs(inputs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/extras/profiling.py", line 87, in wrapper
+[rank0]:     return func(self, *args, **kwargs)
+[rank0]:   File "/userhomes/minsu/symr/modules/trainer.py", line 178, in _prepare_inputs
+[rank0]:     inputs = self._generate_and_score_completions(inputs)
+[rank0]:   File "/userhomes/minsu/symr/modules/trainer.py", line 387, in _generate_and_score_completions
+[rank0]:     rewards_per_func = masked_whiten(rewards_per_func, mask=value_mask, shift_mean=False)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/core.py", line 72, in masked_whiten
+[rank0]:     mean, var = masked_mean(values, mask), masked_var(values, mask)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/core.py", line 48, in masked_mean
+[rank0]:     return (values * mask).sum() / mask.sum()
+[rank0]: RuntimeError: The size of tensor a (259) must match the size of tensor b (256) at non-singleton dimension 1

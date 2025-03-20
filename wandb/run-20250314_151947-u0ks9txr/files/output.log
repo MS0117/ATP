@@ -1,0 +1,91 @@
+  0%|                                                                                                                                                                                                            | 0/12 [00:00<?, ?it/s]
+Complete launching 4 LeanServerProcesses
+rewarding start
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 11, 'column': 1}, 'endPos': None, 'data': 'unknown tactic'}, {'severity': 'error', 'pos': {'line': 9, 'column': 80}, 'endPos': {'line': 11, 'column': 3}, 'data': 'unsolved goals\n⊢ (1 / 2 + 1 / 3) * (1 / 2 - 1 / 3) = 5 / 36'}, {'severity': 'error', 'pos': {'line': 15, 'column': 89}, 'endPos': {'line': 15, 'column': 92}, 'data': "invalid 'end', insufficient scopes"}, {'severity': 'error', 'pos': {'line': 15, 'column': 92}, 'endPos': {'line': 15, 'column': 93}, 'data': "unexpected token '{'; expected command"}, {'severity': 'error', 'pos': {'line': 17, 'column': 1}, 'endPos': {'line': 17, 'column': 4}, 'data': "invalid 'end', insufficient scopes"}, {'severity': 'error', 'pos': {'line': 17, 'column': 4}, 'endPos': {'line': 17, 'column': 5}, 'data': "unexpected token '{'; expected command"}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 9, 'column': 63}, 'endPos': {'line': 11, 'column': 1}, 'data': "unexpected token '\\'; expected '{' or tactic"}, {'severity': 'error', 'pos': {'line': 9, 'column': 61}, 'endPos': {'line': 9, 'column': 63}, 'data': 'unsolved goals\nf : ℕ → ℕ\n⊢ ∃ n, f (f n) ≠ n + 1987'}, {'severity': 'error', 'pos': {'line': 13, 'column': 55}, 'endPos': {'line': 13, 'column': 56}, 'data': "unexpected token ':'; expected identifier"}, {'severity': 'error', 'pos': {'line': 14, 'column': 0}, 'endPos': None, 'data': 'unexpected end of input'}]
+data [{'severity': 'error', 'pos': {'line': 10, 'column': 0}, 'endPos': None, 'data': "unexpected end of input; expected '{'"}, {'severity': 'error', 'pos': {'line': 9, 'column': 61}, 'endPos': {'line': 9, 'column': 63}, 'data': 'unsolved goals\nf : ℕ → ℕ\n⊢ ∃ n, f (f n) ≠ n + 1987'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 9, 'column': 52}, 'endPos': {'line': 11, 'column': 3}, 'data': "unexpected token '/--'; expected '{' or tactic"}, {'severity': 'error', 'pos': {'line': 9, 'column': 50}, 'endPos': {'line': 9, 'column': 52}, 'data': 'unsolved goals\n⊢ 2004 % 12 = 0'}, {'severity': 'error', 'pos': {'line': 11, 'column': 79}, 'endPos': {'line': 13, 'column': 3}, 'data': "unexpected token '/--'; expected '#guard_msgs', 'abbrev', 'add_decl_doc', 'add_tactic_doc', 'alias', 'axiom', 'binder_predicate', 'builtin_dsimproc', 'builtin_dsimproc_decl', 'builtin_initialize', 'builtin_simproc', 'builtin_simproc_decl', 'class', 'declare_config_elab', 'declare_opaque_type', 'declare_simp_like_tactic', 'declare_syntax_cat', 'def', 'dsimproc', 'dsimproc_decl', 'elab', 'elab_rules', 'example', 'inductive', 'infix', 'infixl', 'infixr', 'initialize', 'instance', 'irreducible_def', 'lemma', 'macro', 'macro_rules', 'notation', 'notation3', 'opaque', 'postfix', 'prefix', 'proof_wanted', 'register_builtin_option', 'register_label_attr', 'register_option', 'register_simp_attr', 'scoped', 'simproc', 'simproc_decl', 'structure', 'syntax', 'theorem' or 'unif_hint'"}, {'severity': 'error', 'pos': {'line': 13, 'column': 79}, 'endPos': {'line': 15, 'column': 4}, 'data': "unexpected token; expected '#guard_msgs', 'abbrev', 'add_decl_doc', 'add_tactic_doc', 'alias', 'axiom', 'binder_predicate', 'builtin_dsimproc', 'builtin_dsimproc_decl', 'builtin_initialize', 'builtin_simproc', 'builtin_simproc_decl', 'class', 'declare_config_elab', 'declare_opaque_type', 'declare_simp_like_tactic', 'declare_syntax_cat', 'def', 'dsimproc', 'dsimproc_decl', 'elab', 'elab_rules', 'example', 'inductive', 'infix', 'infixl', 'infixr', 'initialize', 'instance', 'irreducible_def', 'lemma', 'macro', 'macro_rules', 'notation', 'notation3', 'opaque', 'postfix', 'prefix', 'proof_wanted', 'register_builtin_option', 'register_label_attr', 'register_option', 'register_simp_attr', 'scoped', 'simproc', 'simproc_decl', 'structure', 'syntax', 'theorem' or 'unif_hint'"}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+data [{'severity': 'error', 'pos': {'line': 1, 'column': 0}, 'endPos': {'line': 1, 'column': 4}, 'data': 'unexpected identifier; expected command'}]
+padded_scores tensor([[0.0000, 0.0000, 0.0000,  ..., 0.0000, 0.0000, 0.0000],
+        [0.0000, 0.0000, 0.0000,  ..., 0.0000, 0.0000, 0.0000],
+        [0.0000, 0.0000, 0.0000,  ..., 0.0000, 0.0000, 0.0000],
+        ...,
+        [1.0000, 1.0000, 0.5000,  ..., 0.0000, 0.0000, 0.0000],
+        [0.0000, 0.0000, 0.0000,  ..., 0.0000, 0.0000, 0.0000],
+        [0.0000, 0.0000, 0.0000,  ..., 0.0000, 0.0000, 0.0000]])
+rewards tensor([[-0.0434, -0.0434, -0.0434,  ..., -0.0000, -0.0000, -0.0000],
+        [-0.0434, -0.0434, -0.0434,  ..., -0.0434, -0.0434, -0.0434],
+        [-0.0434, -0.0434, -0.0434,  ..., -0.0434, -0.0434, -0.0434],
+        ...,
+        [23.2387, 23.2387, 11.5976,  ..., -0.0434, -0.0434, -0.0434],
+        [-0.0434, -0.0434, -0.0434,  ..., -0.0434, -0.0434, -0.0434],
+        [-0.0434, -0.0434, -0.0434,  ..., -0.0434, -0.0434, -0.0434]],
+       device='cuda:0')
+  File "/userhomes/minsu/symr/train.py", line 249, in <module>
+    main(
+  File "/userhomes/minsu/symr/train.py", line 183, in main
+    train_result = trainer.train()
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2241, in train
+    return inner_training_loop(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2548, in _inner_training_loop
+    tr_loss_step = self.training_step(model, inputs, num_items_in_batch)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 3692, in training_step
+    inputs = self._prepare_inputs(inputs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/extras/profiling.py", line 87, in wrapper
+    return func(self, *args, **kwargs)
+  File "/userhomes/minsu/symr/modules/trainer.py", line 178, in _prepare_inputs
+    inputs = self._generate_and_score_completions(inputs)
+  File "/userhomes/minsu/symr/modules/trainer.py", line 424, in _generate_and_score_completions
+    self._metrics[mode]["reward"].append(rewards.item())
+RuntimeError: a Tensor with 8192 elements cannot be converted to Scalar
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/userhomes/minsu/symr/train.py", line 249, in <module>
+[rank0]:     main(
+[rank0]:   File "/userhomes/minsu/symr/train.py", line 183, in main
+[rank0]:     train_result = trainer.train()
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2241, in train
+[rank0]:     return inner_training_loop(
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2548, in _inner_training_loop
+[rank0]:     tr_loss_step = self.training_step(model, inputs, num_items_in_batch)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 3692, in training_step
+[rank0]:     inputs = self._prepare_inputs(inputs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/extras/profiling.py", line 87, in wrapper
+[rank0]:     return func(self, *args, **kwargs)
+[rank0]:   File "/userhomes/minsu/symr/modules/trainer.py", line 178, in _prepare_inputs
+[rank0]:     inputs = self._generate_and_score_completions(inputs)
+[rank0]:   File "/userhomes/minsu/symr/modules/trainer.py", line 424, in _generate_and_score_completions
+[rank0]:     self._metrics[mode]["reward"].append(rewards.item())
+[rank0]: RuntimeError: a Tensor with 8192 elements cannot be converted to Scalar
+TaskQueue-verifier:  32 requests popped with avg batch_size 1.0 in last period  0 waiting in queue
+Exception ignored in: <module 'threading' from '/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/threading.py'>
+Traceback (most recent call last):
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/threading.py", line 1567, in _shutdown
+    lock.acquire()
+KeyboardInterrupt:

@@ -1,0 +1,110 @@
+  0%|                                                                                                                                                                                                         | 0/43773 [00:00<?, ?it/s][rank0]:W0314 15:46:34.018000 924464 site-packages/torch/_dynamo/variables/tensor.py:776] [23/0] Graph break from `Tensor.item()`, consider setting:
+[rank0]:W0314 15:46:34.018000 924464 site-packages/torch/_dynamo/variables/tensor.py:776] [23/0]     torch._dynamo.config.capture_scalar_outputs = True
+[rank0]:W0314 15:46:34.018000 924464 site-packages/torch/_dynamo/variables/tensor.py:776] [23/0] or:
+[rank0]:W0314 15:46:34.018000 924464 site-packages/torch/_dynamo/variables/tensor.py:776] [23/0]     env TORCHDYNAMO_CAPTURE_SCALAR_OUTPUTS=1
+[rank0]:W0314 15:46:34.018000 924464 site-packages/torch/_dynamo/variables/tensor.py:776] [23/0] to include these operations in the captured graph.
+[rank0]:W0314 15:46:34.018000 924464 site-packages/torch/_dynamo/variables/tensor.py:776] [23/0]
+[rank0]:W0314 15:46:34.018000 924464 site-packages/torch/_dynamo/variables/tensor.py:776] [23/0] Graph break: from user code at:
+[rank0]:W0314 15:46:34.018000 924464 site-packages/torch/_dynamo/variables/tensor.py:776] [23/0]   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/models/gpt2/modeling_gpt2.py", line 827, in torch_dynamo_resume_in_forward_at_820
+[rank0]:W0314 15:46:34.018000 924464 site-packages/torch/_dynamo/variables/tensor.py:776] [23/0]     attention_mask = attention_mask if (attention_mask is not None and 0 in attention_mask) else None
+[rank0]:W0314 15:46:34.018000 924464 site-packages/torch/_dynamo/variables/tensor.py:776] [23/0]
+[rank0]:W0314 15:46:34.018000 924464 site-packages/torch/_dynamo/variables/tensor.py:776] [23/0]
+self._metrics[mode] defaultdict(<class 'list'>, {'completion_length': [137.125], 'rewards/reward_len': [-536.5], 'reward': [-536.5], 'reward_std': [343.7757568359375], 'kl': [2408448.0], 'clip_ratio': [0.0]})
+loss tensor(96262.8672, device='cuda:0', grad_fn=<DivBackward0>)
+[2025-03-14 15:46:37,111] [WARNING] [stage3.py:2139:step] 1 pytorch allocator cache flushes since last step. this happens when there is high memory pressure and is detrimental to performance. if this is happening frequently consider adjusting settings to reduce memory consumption. If you are unable to make the cache flushes go away consider adding get_accelerator().empty_cache() calls in your training loop to ensure that all ranks flush their caches at the same time
+  0%|                                                                                                                                                                                              | 1/43773 [00:07<86:50:31,  7.14s/it]Traceback (most recent call last):
+  File "/userhomes/minsu/symr/train.py", line 249, in <module>
+    main(
+  File "/userhomes/minsu/symr/train.py", line 183, in main
+    train_result = trainer.train()
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2241, in train
+    return inner_training_loop(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2548, in _inner_training_loop
+    tr_loss_step = self.training_step(model, inputs, num_items_in_batch)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 3698, in training_step
+    loss = self.compute_loss(model, inputs, num_items_in_batch=num_items_in_batch)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/extras/profiling.py", line 87, in wrapper
+    return func(self, *args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/trainer/grpo_trainer.py", line 944, in compute_loss
+    per_token_logps = self._get_per_token_logps(model, input_ids, attention_mask, logits_to_keep)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/extras/profiling.py", line 87, in wrapper
+    return func(self, *args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/trainer/grpo_trainer.py", line 657, in _get_per_token_logps
+    logits = model(input_ids=input_ids, attention_mask=attention_mask, logits_to_keep=logits_to_keep + 1).logits
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/deepspeed/utils/nvtx.py", line 18, in wrapped_fn
+    ret_val = func(*args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/deepspeed/runtime/engine.py", line 1987, in forward
+    loss = self.module(*inputs, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1734, in _wrapped_call_impl
+    return self._compiled_call_impl(*args, **kwargs)  # type: ignore[misc]
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/_dynamo/eval_frame.py", line 465, in _fn
+    return fn(*args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1844, in _call_impl
+    return inner()
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1779, in inner
+    args_result = hook(self, args)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/deepspeed/utils/nvtx.py", line 18, in wrapped_fn
+    ret_val = func(*args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/deepspeed/runtime/zero/parameter_offload.py", line 245, in _start_of_forward_hook
+    self.get_param_coordinator().reset_step()
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/_dynamo/eval_frame.py", line 632, in _fn
+    return fn(*args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/deepspeed/runtime/zero/partitioned_param_coordinator.py", line 241, in reset_step
+    self.construct_parameter_trace_from_module_trace()
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/deepspeed/runtime/zero/partitioned_param_coordinator.py", line 225, in construct_parameter_trace_from_module_trace
+    self.record_parameters(sub_module)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/deepspeed/runtime/zero/partitioned_param_coordinator.py", line 217, in record_parameters
+    step_id = self.__step_id_module_fetched_for[sub_module.ds_id].popleft()
+IndexError: pop from an empty deque
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/userhomes/minsu/symr/train.py", line 249, in <module>
+[rank0]:     main(
+[rank0]:   File "/userhomes/minsu/symr/train.py", line 183, in main
+[rank0]:     train_result = trainer.train()
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2241, in train
+[rank0]:     return inner_training_loop(
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2548, in _inner_training_loop
+[rank0]:     tr_loss_step = self.training_step(model, inputs, num_items_in_batch)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 3698, in training_step
+[rank0]:     loss = self.compute_loss(model, inputs, num_items_in_batch=num_items_in_batch)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/extras/profiling.py", line 87, in wrapper
+[rank0]:     return func(self, *args, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/trainer/grpo_trainer.py", line 944, in compute_loss
+[rank0]:     per_token_logps = self._get_per_token_logps(model, input_ids, attention_mask, logits_to_keep)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/extras/profiling.py", line 87, in wrapper
+[rank0]:     return func(self, *args, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/trainer/grpo_trainer.py", line 657, in _get_per_token_logps
+[rank0]:     logits = model(input_ids=input_ids, attention_mask=attention_mask, logits_to_keep=logits_to_keep + 1).logits
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1736, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1747, in _call_impl
+[rank0]:     return forward_call(*args, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/deepspeed/utils/nvtx.py", line 18, in wrapped_fn
+[rank0]:     ret_val = func(*args, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/deepspeed/runtime/engine.py", line 1987, in forward
+[rank0]:     loss = self.module(*inputs, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1734, in _wrapped_call_impl
+[rank0]:     return self._compiled_call_impl(*args, **kwargs)  # type: ignore[misc]
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/_dynamo/eval_frame.py", line 465, in _fn
+[rank0]:     return fn(*args, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1844, in _call_impl
+[rank0]:     return inner()
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1779, in inner
+[rank0]:     args_result = hook(self, args)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/deepspeed/utils/nvtx.py", line 18, in wrapped_fn
+[rank0]:     ret_val = func(*args, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/deepspeed/runtime/zero/parameter_offload.py", line 245, in _start_of_forward_hook
+[rank0]:     self.get_param_coordinator().reset_step()
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/_dynamo/eval_frame.py", line 632, in _fn
+[rank0]:     return fn(*args, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/deepspeed/runtime/zero/partitioned_param_coordinator.py", line 241, in reset_step
+[rank0]:     self.construct_parameter_trace_from_module_trace()
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/deepspeed/runtime/zero/partitioned_param_coordinator.py", line 225, in construct_parameter_trace_from_module_trace
+[rank0]:     self.record_parameters(sub_module)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/deepspeed/runtime/zero/partitioned_param_coordinator.py", line 217, in record_parameters
+[rank0]:     step_id = self.__step_id_module_fetched_for[sub_module.ds_id].popleft()
+[rank0]: IndexError: pop from an empty deque

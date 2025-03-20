@@ -1,0 +1,7 @@
+{"time":"2025-03-17T13:45:48.153594837+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/userhomes/minsu/symr/wandb/run-20250317_134547-ljmd75ea/logs/debug-core.log"}
+{"time":"2025-03-17T13:45:48.304837131+09:00","level":"INFO","msg":"created new stream","id":"ljmd75ea"}
+{"time":"2025-03-17T13:45:48.3048793+09:00","level":"INFO","msg":"stream: started","id":"ljmd75ea"}
+{"time":"2025-03-17T13:45:48.304922031+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"ljmd75ea"}
+{"time":"2025-03-17T13:45:48.304944373+09:00","level":"INFO","msg":"handler: started","stream_id":"ljmd75ea"}
+{"time":"2025-03-17T13:45:48.304989118+09:00","level":"INFO","msg":"sender: started","stream_id":"ljmd75ea"}
+{"time":"2025-03-17T13:45:48.971744997+09:00","level":"INFO","msg":"Starting system monitor"}

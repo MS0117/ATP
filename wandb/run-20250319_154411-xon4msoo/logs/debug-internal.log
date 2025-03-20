@@ -1,0 +1,7 @@
+{"time":"2025-03-19T15:44:11.636819723+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/userhomes/minsu/symr/wandb/run-20250319_154411-xon4msoo/logs/debug-core.log"}
+{"time":"2025-03-19T15:44:11.797902147+09:00","level":"INFO","msg":"created new stream","id":"xon4msoo"}
+{"time":"2025-03-19T15:44:11.797941451+09:00","level":"INFO","msg":"stream: started","id":"xon4msoo"}
+{"time":"2025-03-19T15:44:11.797952102+09:00","level":"INFO","msg":"handler: started","stream_id":"xon4msoo"}
+{"time":"2025-03-19T15:44:11.797991406+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"xon4msoo"}
+{"time":"2025-03-19T15:44:11.797999201+09:00","level":"INFO","msg":"sender: started","stream_id":"xon4msoo"}
+{"time":"2025-03-19T15:44:12.306487917+09:00","level":"INFO","msg":"Starting system monitor"}

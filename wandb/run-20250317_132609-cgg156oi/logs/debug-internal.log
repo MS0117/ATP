@@ -1,0 +1,15 @@
+{"time":"2025-03-17T13:26:09.484013485+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/userhomes/minsu/symr/wandb/run-20250317_132609-cgg156oi/logs/debug-core.log"}
+{"time":"2025-03-17T13:26:09.636357571+09:00","level":"INFO","msg":"created new stream","id":"cgg156oi"}
+{"time":"2025-03-17T13:26:09.636396725+09:00","level":"INFO","msg":"stream: started","id":"cgg156oi"}
+{"time":"2025-03-17T13:26:09.636439987+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"cgg156oi"}
+{"time":"2025-03-17T13:26:09.636454995+09:00","level":"INFO","msg":"sender: started","stream_id":"cgg156oi"}
+{"time":"2025-03-17T13:26:09.636493027+09:00","level":"INFO","msg":"handler: started","stream_id":"cgg156oi"}
+{"time":"2025-03-17T13:26:10.165897883+09:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-03-17T13:26:16.044116161+09:00","level":"INFO","msg":"stream: closing","id":"cgg156oi"}
+{"time":"2025-03-17T13:26:16.04414705+09:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-03-17T13:26:16.045009108+09:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-03-17T13:26:17.146482918+09:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-03-17T13:26:17.879103643+09:00","level":"INFO","msg":"handler: closed","stream_id":"cgg156oi"}
+{"time":"2025-03-17T13:26:17.87915017+09:00","level":"INFO","msg":"writer: Close: closed","stream_id":"cgg156oi"}
+{"time":"2025-03-17T13:26:17.879184195+09:00","level":"INFO","msg":"sender: closed","stream_id":"cgg156oi"}
+{"time":"2025-03-17T13:26:17.901206562+09:00","level":"INFO","msg":"stream: closed","id":"cgg156oi"}

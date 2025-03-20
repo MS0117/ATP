@@ -1,0 +1,47 @@
+  0%|                                                                                                                                                                                                            | 0/24 [00:00<?, ?it/s]Traceback (most recent call last):
+Complete launching 4 LeanServerProcesses
+texts ['Complete the following Lean 4 code with explanatory comments preceding each line of code:\n\n```lean4\nimport Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- For what real value of $k$ is $\\frac{13-\\sqrt{131}}{4}$ a root of $2x^2-13x+k$? Show that it is $\\frac{19}{4}$.-/\ntheorem mathd_algebra_116 (k x : ℝ) (h₀ : x = (13 - Real.sqrt 131) / 4)\n    (h₁ : 2 * x ^ 2 - 13 * x + k = 0) : k = 19 / 4 := by\n\n: k = 23 / 4 := by\n\n...', 'Complete the following Lean 4 code with explanatory comments preceding each line of code:\n\n```lean4\nimport Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- For what real value of $k$ is $\\frac{13-\\sqrt{131}}{4}$ a root of $2x^2-13x+k$? Show that it is $\\frac{19}{4}$.-/\ntheorem mathd_algebra_116 (k x : ℝ) (h₀ : x = (13 - Real.sqrt 131) / 4)\n    (h₁ : 2 * x ^ 2 - 13 * x + k = 0) : k = 19 / 4 := by\n\n: x = - K.$$ \\frac{1}{(1-k)-2 - 13 + 13 - Real.sqrt 131 - 13)+13 = 13 + 0.$$\n\n: x = - Q.$$\n\n: Q = 2.$$\n\n: Q = 4.$$\n\n: Q = 2.$$\n\n: Q = 3.$$\n\n: Q = 3.$$\n\n: T = 1.$$\n\n: T = 1.$$\n\n: T = 1.$$\n\n: T = 2.$$\n\n: T = 2.$$\n\n: T = 3.$$\n\n: T = 3.$$\n\n: T = 3.$$\n\n: T = 4.$$\n\n: T = 4.$$\n\n: T = 4.$$\n\n: T = 4.$$\n\n: T = 5.$$\n\n: T = 5.$$\n\n: T = 5.$$\n\n: T = 6.$$\n\n: T = 6.$$\n\n: T = 6.$$\n\n: T = 7.$$\n\n: T = 7.$$\n\n: T = 8.', 'Complete the following Lean 4 code with explanatory comments preceding each line of code:\n\n```lean4\nimport Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- For what real value of $k$ is $\\frac{13-\\sqrt{131}}{4}$ a root of $2x^2-13x+k$? Show that it is $\\frac{19}{4}$.-/\ntheorem mathd_algebra_116 (k x : ℝ) (h₀ : x = (13 - Real.sqrt 131) / 4)\n    (h₁ : 2 * x ^ 2 - 13 * x + k = 0) : k = 19 / 4 := by\n\nset_option maxHeartbeats 0\n\nopen C(big_op_flour : Big.op.flour)\n\nimport Mathlib\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- For what real value of $k$ is $\\frac{13-\\sqrt{131}}{4}$ a root of $2x^2-13x+k$? Show that it is $\\frac{19}{4}$.-/theorem mathd_algebra_116 (k x : ℝ) (h₀ : x = (13 - Real.sqrt 131) / 4)\n\n: k = 19 / 4 := by\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- For what real value of $k$ is $\\frac{19}{4}$ a root of $2x^2-13x+k$? Show that it is $\\frac{19}{4}$.-/theorem mathd_algebra_116 (k x : ℝ) (h₀ : x = (13', 'Complete the following Lean 4 code with explanatory comments preceding each line of code:\n\n```lean4\nimport Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- For what real value of $k$ is $\\frac{13-\\sqrt{131}}{4}$ a root of $2x^2-13x+k$? Show that it is $\\frac{19}{4}$.-/\ntheorem mathd_algebra_116 (k x : ℝ) (h₀ : x = (13 - Real.sqrt 131) / 4)\n    (h₁ : 2 * x ^ 2 - 13 * x + k = 0) : k = 19 / 4 := by\n\n# Get the actual number of times $i$ is given. The value of $h₁ is $16*x^n$ if $i$ is $1/16$.\n\nuse Mathlib\n\nimport Bool\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- For what real value of $k$ is $\\frac{31}{17}\\frac{1}{2}$ a root of $32x~(k x : \\sqrt{131}}{4}) * x^n$? Show that it is $\\frac{32}{16*x^n*1}^2$-/ theorem mathd_algebra_108 (k x : ℝ) (h₂ : x = (8/16) / 4)\n\n/-- For what real value of $k$ is $\\frac{31}{17}x^2+k$ a root of $32x~(k x : \\sqrt{131}}{4}) * x^n$?\n\nshow_for_real (k x : \\sqrt{131}}{6}*x^n*', 'Complete the following Lean 4 code with explanatory comments preceding each line of code:\n\n```lean4\nimport Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- For what real value of $k$ is $\\frac{13-\\sqrt{131}}{4}$ a root of $2x^2-13x+k$? Show that it is $\\frac{19}{4}$.-/\ntheorem mathd_algebra_116 (k x : ℝ) (h₀ : x = (13 - Real.sqrt 131) / 4)\n    (h₁ : 2 * x ^ 2 - 13 * x + k = 0) : k = 19 / 4 := by\n\nlift y to $k$ - h^2-13x+k \\cdots \\sum_{y=^2-\\sqrt{137}}{4}$,\n\nthen,\n\n\\rm fx_t(k x \\to (4^2-13x+k) \\
+  File "/userhomes/minsu/symr/train.py", line 249, in <module>
+    main(
+  File "/userhomes/minsu/symr/train.py", line 183, in main
+    train_result = trainer.train()
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2241, in train
+    return inner_training_loop(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2548, in _inner_training_loop
+    tr_loss_step = self.training_step(model, inputs, num_items_in_batch)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 3692, in training_step
+    inputs = self._prepare_inputs(inputs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/extras/profiling.py", line 87, in wrapper
+    return func(self, *args, **kwargs)
+  File "/userhomes/minsu/symr/modules/trainer.py", line 175, in _prepare_inputs
+    inputs = self._generate_and_score_completions(inputs)
+  File "/userhomes/minsu/symr/modules/trainer.py", line 329, in _generate_and_score_completions
+    output_reward_func = reward_func(prompts=prompts, completions=completions,
+  File "/userhomes/minsu/symr/modules/reward_function.py", line 739, in lean4_value_reward
+    request_id_list = lean4_scheduler.submit_all_request([re.search(r'```lean4\n(.*?)\n```', result, re.DOTALL).group(1) for result in texts])
+  File "/userhomes/minsu/symr/modules/reward_function.py", line 739, in <listcomp>
+    request_id_list = lean4_scheduler.submit_all_request([re.search(r'```lean4\n(.*?)\n```', result, re.DOTALL).group(1) for result in texts])
+AttributeError: 'NoneType' object has no attribute 'group'
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/userhomes/minsu/symr/train.py", line 249, in <module>
+[rank0]:     main(
+[rank0]:   File "/userhomes/minsu/symr/train.py", line 183, in main
+[rank0]:     train_result = trainer.train()
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2241, in train
+[rank0]:     return inner_training_loop(
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2548, in _inner_training_loop
+[rank0]:     tr_loss_step = self.training_step(model, inputs, num_items_in_batch)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 3692, in training_step
+[rank0]:     inputs = self._prepare_inputs(inputs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/extras/profiling.py", line 87, in wrapper
+[rank0]:     return func(self, *args, **kwargs)
+[rank0]:   File "/userhomes/minsu/symr/modules/trainer.py", line 175, in _prepare_inputs
+[rank0]:     inputs = self._generate_and_score_completions(inputs)
+[rank0]:   File "/userhomes/minsu/symr/modules/trainer.py", line 329, in _generate_and_score_completions
+[rank0]:     output_reward_func = reward_func(prompts=prompts, completions=completions,
+[rank0]:   File "/userhomes/minsu/symr/modules/reward_function.py", line 739, in lean4_value_reward
+[rank0]:     request_id_list = lean4_scheduler.submit_all_request([re.search(r'```lean4\n(.*?)\n```', result, re.DOTALL).group(1) for result in texts])
+[rank0]:   File "/userhomes/minsu/symr/modules/reward_function.py", line 739, in <listcomp>
+[rank0]:     request_id_list = lean4_scheduler.submit_all_request([re.search(r'```lean4\n(.*?)\n```', result, re.DOTALL).group(1) for result in texts])
+[rank0]: AttributeError: 'NoneType' object has no attribute 'group'
+Exception ignored in: <module 'threading' from '/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/threading.py'>

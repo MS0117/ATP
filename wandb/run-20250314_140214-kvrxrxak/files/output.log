@@ -1,0 +1,113 @@
+  0%|                                                                                                                                                                                                            | 0/12 [00:00<?, ?it/s]
+promts ['Complete the following Lean 4 code with explanatory comments preceding each line of code:\n\n```lean4\nimport Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- For what real value of $k$ is $\\frac{13-\\sqrt{131}}{4}$ a root of $2x^2-13x+k$? Show that it is $\\frac{19}{4}$.-/\ntheorem mathd_algebra_116 (k x : ℝ) (h₀ : x = (13 - Real.sqrt 131) / 4)\n    (h₁ : 2 * x ^ 2 - 13 * x + k = 0) : k = 19 / 4 := by\n', 'Complete the following Lean 4 code with explanatory comments preceding each line of code:\n\n```lean4\nimport Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- For what real value of $k$ is $\\frac{13-\\sqrt{131}}{4}$ a root of $2x^2-13x+k$? Show that it is $\\frac{19}{4}$.-/\ntheorem mathd_algebra_116 (k x : ℝ) (h₀ : x = (13 - Real.sqrt 131) / 4)\n    (h₁ : 2 * x ^ 2 - 13 * x + k = 0) : k = 19 / 4 := by\n', 'Complete the following Lean 4 code with explanatory comments preceding each line of code:\n\n```lean4\nimport Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- For what real value of $k$ is $\\frac{13-\\sqrt{131}}{4}$ a root of $2x^2-13x+k$? Show that it is $\\frac{19}{4}$.-/\ntheorem mathd_algebra_116 (k x : ℝ) (h₀ : x = (13 - Real.sqrt 131) / 4)\n    (h₁ : 2 * x ^ 2 - 13 * x + k = 0) : k = 19 / 4 := by\n', 'Complete the following Lean 4 code with explanatory comments preceding each line of code:\n\n```lean4\nimport Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- For what real value of $k$ is $\\frac{13-\\sqrt{131}}{4}$ a root of $2x^2-13x+k$? Show that it is $\\frac{19}{4}$.-/\ntheorem mathd_algebra_116 (k x : ℝ) (h₀ : x = (13 - Real.sqrt 131) / 4)\n    (h₁ : 2 * x ^ 2 - 13 * x + k = 0) : k = 19 / 4 := by\n', 'Complete the following Lean 4 code with explanatory comments preceding each line of code:\n\n```lean4\nimport Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- Suppose $r^{}_{}$ is a [[real number]] for which\n<div style="text-align:center">$\n\\left\\lfloor r + \\frac{19}{100} \\right\\rfloor + \\left\\lfloor r + \\frac{20}{100} \\right\\rfloor + \\left\\lfloor r + \\frac{21}{100} \\right\\rfloor + \\cdots + \\left\\lfloor r + \\frac{91}{100} \\right\\rfloor = 546.\n$</div>\nFind $\\lfloor 100r \\rfloor$. (For real $x^{}_{}$, $\\lfloor x \\rfloor$ is the [[floor function|greatest integer]] less than or equal to $x^{}_{}$.) Show that it is 743.-/\ntheorem aime_1991_p6 (r : ℝ) (h₀ : (∑ k in Finset.Icc (19 : ℕ) 91, Int.floor (r + k / 100)) = 546) :\n  Int.floor (100 * r) = 743 := by\n', 'Complete the following Lean 4 code with explanatory comments preceding each line of code:\n\n```lean4\nimport Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- Suppose $r^{}_{}$ is a [[real number]] for which\n<div style="text-align:center">$\n\\left\\lfloor r + \\frac{19}{100} \\right\\rfloor + \\left\\lfloor r + \\frac{20}{100} \\right\\rfloor + \\left\\lfloor r + \\frac{21}{100} \\right\\rfloor + \\cdots + \\left\\lfloor r + \\frac{91}{100} \\right\\rfloor = 546.\n$</div>\nFind $\\lfloor 100r \\rfloor$. (For real $x^{}_{}$, $\\lfloor x \\rfloor$ is the [[floor function|greatest integer]] less than or equal to $x^{}_{}$.) Show that it is 743.-/\ntheorem aime_1991_p6 (r : ℝ) (h₀ : (∑ k in Finset.Icc (19 : ℕ) 91, Int.floor (r + k / 100)) = 546) :\n  Int.floor (100 * r) = 743 := by\n', 'Complete the following Lean 4 code with explanatory comments preceding each line of code:\n\n```lean4\nimport Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- Suppose $r^{}_{}$ is a [[real number]] for which\n<div style="text-align:center">$\n\\left\\lfloor r + \\frac{19}{100} \\right\\rfloor + \\left\\lfloor r + \\frac{20}{100} \\right\\rfloor + \\left\\lfloor r + \\frac{21}{100} \\right\\rfloor + \\cdots + \\left\\lfloor r + \\frac{91}{100} \\right\\rfloor = 546.\n$</di
+Complete launching 4 LeanServerProcesses
+rewarding start
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+[DEBUG] item#0, error=True, lines=1-1, cols=0-4
+        substring=('')
+completion_ids.size torch.Size([32, 256])
+completion_mask.size torch.Size([32, 256])
+[rank0]:W0314 14:02:39.091000 832850 site-packages/torch/_dynamo/variables/tensor.py:776] [23/0]     torch._dynamo.config.capture_scalar_outputs = True
+[rank0]:W0314 14:02:39.091000 832850 site-packages/torch/_dynamo/variables/tensor.py:776] [23/0] or:
+[rank0]:W0314 14:02:39.091000 832850 site-packages/torch/_dynamo/variables/tensor.py:776] [23/0]     env TORCHDYNAMO_CAPTURE_SCALAR_OUTPUTS=1
+[rank0]:W0314 14:02:39.091000 832850 site-packages/torch/_dynamo/variables/tensor.py:776] [23/0] to include these operations in the captured graph.
+[rank0]:W0314 14:02:39.091000 832850 site-packages/torch/_dynamo/variables/tensor.py:776] [23/0]
+[rank0]:W0314 14:02:39.091000 832850 site-packages/torch/_dynamo/variables/tensor.py:776] [23/0] Graph break: from user code at:
+[rank0]:W0314 14:02:39.091000 832850 site-packages/torch/_dynamo/variables/tensor.py:776] [23/0]   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/models/gpt2/modeling_gpt2.py", line 827, in torch_dynamo_resume_in_forward_at_820
+[rank0]:W0314 14:02:39.091000 832850 site-packages/torch/_dynamo/variables/tensor.py:776] [23/0]     attention_mask = attention_mask if (attention_mask is not None and 0 in attention_mask) else None
+[rank0]:W0314 14:02:39.091000 832850 site-packages/torch/_dynamo/variables/tensor.py:776] [23/0]
+[rank0]:W0314 14:02:39.091000 832850 site-packages/torch/_dynamo/variables/tensor.py:776] [23/0]
+num_batch 32
+self.num_generations 4
+self._metrics[mode] defaultdict(<class 'list'>, {'completion_length': [232.34375], 'rewards/lean4_value_reward': [<built-in method mean of Tensor object at 0x7f59514b35b0>], 'reward': [tensor(0., device='cuda:0')], 'kl': [1.0], 'clip_ratio': [0.0]})
+loss tensor(-0.1357, device='cuda:0', grad_fn=<DivBackward0>)
+  8%|████████████████▎                                                                                                                                                                                   | 1/12 [00:24<04:31, 24.69s/it]Traceback (most recent call last):
+  File "/userhomes/minsu/symr/train.py", line 249, in <module>
+    main(
+  File "/userhomes/minsu/symr/train.py", line 183, in main
+    train_result = trainer.train()
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2241, in train
+    return inner_training_loop(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2612, in _inner_training_loop
+    self._maybe_log_save_evaluate(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 3081, in _maybe_log_save_evaluate
+    self.log(logs, start_time)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/trainer/grpo_trainer.py", line 990, in log
+    metrics = {key: sum(val) / len(val) for key, val in self._metrics[mode].items()}  # average the metrics
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/trainer/grpo_trainer.py", line 990, in <dictcomp>
+    metrics = {key: sum(val) / len(val) for key, val in self._metrics[mode].items()}  # average the metrics
+TypeError: unsupported operand type(s) for +: 'int' and 'builtin_function_or_method'
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/userhomes/minsu/symr/train.py", line 249, in <module>
+[rank0]:     main(
+[rank0]:   File "/userhomes/minsu/symr/train.py", line 183, in main
+[rank0]:     train_result = trainer.train()
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2241, in train
+[rank0]:     return inner_training_loop(
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2612, in _inner_training_loop
+[rank0]:     self._maybe_log_save_evaluate(
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 3081, in _maybe_log_save_evaluate
+[rank0]:     self.log(logs, start_time)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/trainer/grpo_trainer.py", line 990, in log
+[rank0]:     metrics = {key: sum(val) / len(val) for key, val in self._metrics[mode].items()}  # average the metrics
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/trainer/grpo_trainer.py", line 990, in <dictcomp>
+[rank0]:     metrics = {key: sum(val) / len(val) for key, val in self._metrics[mode].items()}  # average the metrics
+[rank0]: TypeError: unsupported operand type(s) for +: 'int' and 'builtin_function_or_method'
+Exception ignored in: <module 'threading' from '/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/threading.py'>
+Traceback (most recent call last):
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/threading.py", line 1567, in _shutdown
+    lock.acquire()
+KeyboardInterrupt:

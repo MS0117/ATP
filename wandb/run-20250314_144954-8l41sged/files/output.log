@@ -1,0 +1,82 @@
+  0%|                                                                                                                                                                                                         | 0/87543 [00:00<?, ?it/s][WARNING|utils.py:1843] 2025-03-14 14:49:56,206 >> Setting `pad_token_id` to `eos_token_id`:50256 for open-end generation.
+[WARNING|logging.py:329] 2025-03-14 14:49:56,537 >> `use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`...
+self._metrics[mode] defaultdict(<class 'list'>, {'completion_length': [199.53125], 'rewards/reward_len': [-745.90625], 'reward': [-745.90625], 'reward_std': [339.4517822265625], 'kl': [83361792.0], 'clip_ratio': [0.0]})
+loss tensor(3349142.2500, device='cuda:0', grad_fn=<DivBackward0>)
+[2025-03-14 14:50:47,361] [WARNING] [stage3.py:2139:step] 36 pytorch allocator cache flushes since last step. this happens when there is high memory pressure and is detrimental to performance. if this is happening frequently consider adjusting settings to reduce memory consumption. If you are unable to make the cache flushes go away consider adding get_accelerator().empty_cache() calls in your training loop to ensure that all ranks flush their caches at the same time
+  0%|                                                                                                                                                                                            | 1/87543 [00:51<1245:02:59, 51.20s/it][WARNING|utils.py:1843] 2025-03-14 14:50:47,385 >> Setting `pad_token_id` to `eos_token_id`:50256 for open-end generation.
+[rank0]:W0314 14:51:32.611000 866452 site-packages/torch/_dynamo/convert_frame.py:844] [16/8] torch._dynamo hit config.cache_size_limit (8)
+[rank0]:W0314 14:51:32.611000 866452 site-packages/torch/_dynamo/convert_frame.py:844] [16/8]    function: 'pre_sub_module_forward_function' (/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/deepspeed/runtime/zero/parameter_offload.py:456)
+[rank0]:W0314 14:51:32.611000 866452 site-packages/torch/_dynamo/convert_frame.py:844] [16/8]    last reason: 16/0: ___check_type_id(L['sub_module'], 94506172876064)
+[rank0]:W0314 14:51:32.611000 866452 site-packages/torch/_dynamo/convert_frame.py:844] [16/8] To log all recompilation reasons, use TORCH_LOGS="recompiles".
+[rank0]:W0314 14:51:32.611000 866452 site-packages/torch/_dynamo/convert_frame.py:844] [16/8] To diagnose recompilation issues, see https://pytorch.org/docs/main/torch.compiler_troubleshooting.html.
+[rank0]:W0314 14:51:32.699000 866452 site-packages/torch/_dynamo/convert_frame.py:844] [22/8] torch._dynamo hit config.cache_size_limit (8)
+[rank0]:W0314 14:51:32.699000 866452 site-packages/torch/_dynamo/convert_frame.py:844] [22/8]    function: 'forward' (/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/deepspeed/runtime/zero/parameter_offload.py:414)
+[rank0]:W0314 14:51:32.699000 866452 site-packages/torch/_dynamo/convert_frame.py:844] [22/8]    last reason: 22/0: ___check_type_id(L['ctx'], 94506881097392)
+[rank0]:W0314 14:51:32.699000 866452 site-packages/torch/_dynamo/convert_frame.py:844] [22/8] To log all recompilation reasons, use TORCH_LOGS="recompiles".
+[rank0]:W0314 14:51:32.699000 866452 site-packages/torch/_dynamo/convert_frame.py:844] [22/8] To diagnose recompilation issues, see https://pytorch.org/docs/main/torch.compiler_troubleshooting.html.
+[rank0]:W0314 14:51:32.700000 866452 site-packages/torch/_dynamo/convert_frame.py:844] [24/8] torch._dynamo hit config.cache_size_limit (8)
+[rank0]:W0314 14:51:32.700000 866452 site-packages/torch/_dynamo/convert_frame.py:844] [24/8]    function: '_post_forward_module_hook' (/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/deepspeed/runtime/zero/parameter_offload.py:294)
+[rank0]:W0314 14:51:32.700000 866452 site-packages/torch/_dynamo/convert_frame.py:844] [24/8]    last reason: 24/0: tensor 'L['output']' size mismatch at index 0. expected 32, actual 1
+[rank0]:W0314 14:51:32.700000 866452 site-packages/torch/_dynamo/convert_frame.py:844] [24/8] To log all recompilation reasons, use TORCH_LOGS="recompiles".
+[rank0]:W0314 14:51:32.700000 866452 site-packages/torch/_dynamo/convert_frame.py:844] [24/8] To diagnose recompilation issues, see https://pytorch.org/docs/main/torch.compiler_troubleshooting.html.
+[rank0]:W0314 14:51:32.701000 866452 site-packages/torch/_dynamo/convert_frame.py:844] [33/8] torch._dynamo hit config.cache_size_limit (8)
+[rank0]:W0314 14:51:32.701000 866452 site-packages/torch/_dynamo/convert_frame.py:844] [33/8]    function: 'forward' (/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/deepspeed/runtime/zero/parameter_offload.py:359)
+[rank0]:W0314 14:51:32.701000 866452 site-packages/torch/_dynamo/convert_frame.py:844] [33/8]    last reason: 33/0: ___check_type_id(L['ctx'], 94506893423376)
+[rank0]:W0314 14:51:32.701000 866452 site-packages/torch/_dynamo/convert_frame.py:844] [33/8] To log all recompilation reasons, use TORCH_LOGS="recompiles".
+[rank0]:W0314 14:51:32.701000 866452 site-packages/torch/_dynamo/convert_frame.py:844] [33/8] To diagnose recompilation issues, see https://pytorch.org/docs/main/torch.compiler_troubleshooting.html.
+self._metrics[mode] defaultdict(<class 'list'>, {'completion_length': [199.53125, 177.28125], 'rewards/reward_len': [-745.90625, -657.09375], 'reward': [-745.90625, -657.09375], 'reward_std': [339.4517822265625, 388.93609619140625], 'kl': [83361792.0, 1269760.0], 'clip_ratio': [0.0, 0.0]})
+loss tensor(50721.0547, device='cuda:0', grad_fn=<DivBackward0>)
+[2025-03-14 14:51:33,630] [WARNING] [stage3.py:2139:step] 3 pytorch allocator cache flushes since last step. this happens when there is high memory pressure and is detrimental to performance. if this is happening frequently consider adjusting settings to reduce memory consumption. If you are unable to make the cache flushes go away consider adding get_accelerator().empty_cache() calls in your training loop to ensure that all ranks flush their caches at the same time
+  0%|                                                                                                                                                                                            | 2/87543 [01:37<1174:30:20, 48.30s/it][WARNING|utils.py:1843] 2025-03-14 14:51:33,715 >> Setting `pad_token_id` to `eos_token_id`:50256 for open-end generation.
+Traceback (most recent call last):
+  File "/userhomes/minsu/symr/train.py", line 249, in <module>
+    main(
+  File "/userhomes/minsu/symr/train.py", line 183, in main
+    train_result = trainer.train()
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2241, in train
+    return inner_training_loop(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2548, in _inner_training_loop
+    tr_loss_step = self.training_step(model, inputs, num_items_in_batch)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 3692, in training_step
+    inputs = self._prepare_inputs(inputs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/extras/profiling.py", line 87, in wrapper
+    return func(self, *args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/trainer/grpo_trainer.py", line 706, in _prepare_inputs
+    inputs = self._generate_and_score_completions(inputs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/trainer/grpo_trainer.py", line 773, in _generate_and_score_completions
+    prompt_completion_ids = unwrapped_model.generate(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+    return func(*args, **kwargs)
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/generation/utils.py", line 2223, in generate
+    result = self._sample(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/generation/utils.py", line 3200, in _sample
+    while self._has_unfinished_sequences(
+  File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/generation/utils.py", line 2401, in _has_unfinished_sequences
+    elif this_peer_finished:
+KeyboardInterrupt
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/userhomes/minsu/symr/train.py", line 249, in <module>
+[rank0]:     main(
+[rank0]:   File "/userhomes/minsu/symr/train.py", line 183, in main
+[rank0]:     train_result = trainer.train()
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2241, in train
+[rank0]:     return inner_training_loop(
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 2548, in _inner_training_loop
+[rank0]:     tr_loss_step = self.training_step(model, inputs, num_items_in_batch)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/trainer.py", line 3692, in training_step
+[rank0]:     inputs = self._prepare_inputs(inputs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/extras/profiling.py", line 87, in wrapper
+[rank0]:     return func(self, *args, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/trainer/grpo_trainer.py", line 706, in _prepare_inputs
+[rank0]:     inputs = self._generate_and_score_completions(inputs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/trl/trainer/grpo_trainer.py", line 773, in _generate_and_score_completions
+[rank0]:     prompt_completion_ids = unwrapped_model.generate(
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+[rank0]:     return func(*args, **kwargs)
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/generation/utils.py", line 2223, in generate
+[rank0]:     result = self._sample(
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/generation/utils.py", line 3200, in _sample
+[rank0]:     while self._has_unfinished_sequences(
+[rank0]:   File "/userhomes/minsu/miniconda3/envs/optimized_env/lib/python3.10/site-packages/transformers/generation/utils.py", line 2401, in _has_unfinished_sequences
+[rank0]:     elif this_peer_finished:
+[rank0]: KeyboardInterrupt

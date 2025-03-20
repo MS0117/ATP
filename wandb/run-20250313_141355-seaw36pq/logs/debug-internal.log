@@ -1,0 +1,7 @@
+{"time":"2025-03-13T14:14:01.026901955+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/userhomes/minsu/symr/wandb/run-20250313_141355-seaw36pq/logs/debug-core.log"}
+{"time":"2025-03-13T14:14:01.179887763+09:00","level":"INFO","msg":"created new stream","id":"seaw36pq"}
+{"time":"2025-03-13T14:14:01.179913902+09:00","level":"INFO","msg":"stream: started","id":"seaw36pq"}
+{"time":"2025-03-13T14:14:01.179943208+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"seaw36pq"}
+{"time":"2025-03-13T14:14:01.179948257+09:00","level":"INFO","msg":"handler: started","stream_id":"seaw36pq"}
+{"time":"2025-03-13T14:14:01.179990517+09:00","level":"INFO","msg":"sender: started","stream_id":"seaw36pq"}
+{"time":"2025-03-13T14:14:01.673554894+09:00","level":"INFO","msg":"Starting system monitor"}

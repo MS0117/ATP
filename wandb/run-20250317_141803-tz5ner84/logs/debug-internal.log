@@ -1,0 +1,7 @@
+{"time":"2025-03-17T14:18:03.821927557+09:00","level":"INFO","msg":"stream: starting","core version":"0.19.8","symlink path":"/userhomes/minsu/symr/wandb/run-20250317_141803-tz5ner84/logs/debug-core.log"}
+{"time":"2025-03-17T14:18:03.979684902+09:00","level":"INFO","msg":"created new stream","id":"tz5ner84"}
+{"time":"2025-03-17T14:18:03.979718015+09:00","level":"INFO","msg":"stream: started","id":"tz5ner84"}
+{"time":"2025-03-17T14:18:03.979750887+09:00","level":"INFO","msg":"writer: Do: started","stream_id":"tz5ner84"}
+{"time":"2025-03-17T14:18:03.979775934+09:00","level":"INFO","msg":"sender: started","stream_id":"tz5ner84"}
+{"time":"2025-03-17T14:18:03.979811091+09:00","level":"INFO","msg":"handler: started","stream_id":"tz5ner84"}
+{"time":"2025-03-17T14:18:04.538365384+09:00","level":"INFO","msg":"Starting system monitor"}
