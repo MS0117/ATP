@@ -781,7 +781,7 @@ def lean4_value_reward(prompts, completions, processing_class):
     #print("texts1:",texts)
     #print("type",type(texts[0]))
     #print("\n\n")
-    lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=4, timeout=10, memory_limit=10, name='verifier')
+    lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=8, timeout=300, memory_limit=10, name='verifier')
     #print("texts2:", texts)
     request_id_list = lean4_scheduler.submit_all_request([extract_code(result) for result in texts])
     #extract lean code in the output and give to lean4_scheduler.submit_all_request, after this, each input goes to queue, and request_id_list receive each id.
@@ -797,7 +797,7 @@ def lean4_value_reward(prompts, completions, processing_class):
     #    Each row in padded_scores corresponds to one (prompt+completion) example
     #    The columns are the tokens in the completion portion
     padded_scores = list_of_lists_to_padded_tensor(all_token_scores, padding_value=0)
-    #print("padded_scores",padded_scores)
+    print("padded_scores",padded_scores.size())
     lean4_scheduler.close()
     return padded_scores
 

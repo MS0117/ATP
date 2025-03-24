@@ -189,7 +189,7 @@ class CUSTOMTrainer(GRPOTrainer):
             self, inputs: dict[str, Union[torch.Tensor, Any]]
     ) -> dict[str, Union[torch.Tensor, Any]]:
         device = self.accelerator.device
-
+        #print("tokenizer_len",len(self.processing_class))
         prompts = [x["prompt"] for x in inputs]
         #print("promts",prompts)
         prompts_text = [maybe_apply_chat_template(example, self.processing_class)["prompt"] for example in inputs]
@@ -222,6 +222,7 @@ class CUSTOMTrainer(GRPOTrainer):
                     ordered_set_of_prompts, sampling_params=self.sampling_params, use_tqdm=False
                 )
                 completion_ids = []
+                completions_text=[]
                 #print("self.processing_class.eos_token_id",self.processing_class.eos_token_id)
                 #print("self.processing_class.bos_token_id",self.processing_class.bos_token_id)
                 for outputs in all_outputs:
@@ -230,11 +231,21 @@ class CUSTOMTrainer(GRPOTrainer):
                         #print("vllm_len(output.token_ids",len(output.token_ids))
                         #print("vllm_output.token_ids",output.token_ids)
                         completion_ids.append(output.token_ids)             #no BOS token in output_token_ids
+                        completions_text.append(output.text)
             else:
+                #print("error")
                 completion_ids = [None] * len(all_prompts_text)
+                completions_text = [None] * len(all_prompts_text)
 
-            #print("completion_ids1", completion_ids)
-            completions_text = self.processing_class.batch_decode(completion_ids, skip_special_tokens=True)
+            #print("completion_ids:", completion_ids)
+            #completions_text = self.processing_class.batch_decode(completion_ids, skip_special_tokens=True)
+
+            completions_text= broadcast_object_list(completions_text, from_process=0)
+            process_slice = slice(
+                self.accelerator.process_index * len(prompts),
+                (self.accelerator.process_index + 1) * len(prompts),
+            )
+            completions_text = completions_text[process_slice]
 
             #vllm_tokenizer = self.llm.get_tokenizer()
             encoded = self.processing_class(
@@ -245,7 +256,7 @@ class CUSTOMTrainer(GRPOTrainer):
             completion_ids = [tuple(ids) for ids in completion_ids]
             for i in range(len(completion_ids)):
                 print("index",i)
-                print("completion_ids",completion_ids[i])
+                #print("completion_ids",completion_ids[i])
 
 
             #check token id
@@ -256,13 +267,14 @@ class CUSTOMTrainer(GRPOTrainer):
 
             # Broadcast the completions from the main process to all processes, ensuring each process receives its
             # corresponding slice.
+            """
             completion_ids = broadcast_object_list(completion_ids, from_process=0)
             process_slice = slice(
                 self.accelerator.process_index * len(prompts),
                 (self.accelerator.process_index + 1) * len(prompts),
             )
             completion_ids = completion_ids[process_slice]
-
+            """
             # Pad the completions, and concatenate them with the prompts
             completion_ids = [torch.tensor(ids, device=device) for ids in completion_ids]
             completion_ids = pad(completion_ids, padding_value=self.processing_class.pad_token_id)
@@ -380,8 +392,8 @@ class CUSTOMTrainer(GRPOTrainer):
 
 
             elif "lean" in str(reward_func).lower():
-                #print("prompts",prompts)
-                #print("completions",completions)
+                print("prompts",prompts)
+                print("completions",completions)
                 output_reward_func = reward_func(prompts=prompts, completions=completions,
                                                  processing_class=self.processing_class)  # reward feedback generation, lean4_scheduler
 
@@ -390,7 +402,7 @@ class CUSTOMTrainer(GRPOTrainer):
                 """
 
                 rewards_per_func = output_reward_func.to(dtype=torch.float32, device=device)  # reward
-
+                print("rewards_per_func.size()",rewards_per_func.size())
 
 
             else:
@@ -429,7 +441,7 @@ class CUSTOMTrainer(GRPOTrainer):
             rewards_per_func = masked_whiten(rewards_per_func, mask=value_mask, shift_mean=False)
             rewards_per_func = rewards_per_func * value_mask
 
-        rewards_per_func = gather(rewards_per_func)
+        #rewards_per_func = gather(rewards_per_func)
 
         """
         for i in reversed(range(len(rewards_per_func.shape[-1]))):
@@ -447,6 +459,7 @@ class CUSTOMTrainer(GRPOTrainer):
         advantages = advantages * completion_mask
         """
         advantages=rewards_per_func
+        print("advantages.size()", advantages.size())
         torch.cuda.empty_cache()
 
         # Log the metrics

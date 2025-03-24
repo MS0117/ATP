@@ -38,7 +38,7 @@ def verify_lean4_file(code, lake_path=DEFAULT_LAKE_PATH, lean_workspace=DEFAULT_
         with tempfile.TemporaryFile(mode='w+', encoding='utf-8') as temp_file:
             temp_file.write(message_str + "\r\n\r\n")
             temp_file.seek(0)
-            #print(f'Call repl exe')
+            print(f'Call repl exe')
             outputs = subprocess.run([lake_path, "exe", 'repl'], stdin=temp_file, capture_output=True, text=True,
                                      cwd=lean_workspace, timeout=timeout)
 
@@ -68,7 +68,7 @@ def verify_lean4_file(code, lake_path=DEFAULT_LAKE_PATH, lean_workspace=DEFAULT_
             "system_messages": system_messages
         }
     result['verify_time'] = time.time() - start_time
-   #print('result', result)
+    print('result', result)
     return result
 
 

@@ -32,7 +32,7 @@ from utils import (
     get_peft_config
 )
 
-from trl import  GRPOConfig,GRPOTrainer,RewardConfig,SFTConfig, SFTTrainer,PPOTrainer,PPOConfig, RewardTrainer, DataCollatorForCompletionOnlyLM
+from trl import GRPOConfig,GRPOTrainer,RewardConfig,SFTConfig, SFTTrainer,PPOTrainer,PPOConfig, RewardTrainer, DataCollatorForCompletionOnlyLM
 #from src import ()
 
 tqdm.pandas()
@@ -69,8 +69,11 @@ def main(model_args,
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code, use_fast=True
     )
-    quantization_config=get_quantization_config(model_args)
-    peft_config=get_peft_config(model_args)
+    #quantization_config=get_quantization_config(model_args)
+    quantization_config = get_quantization_config(model_args)
+
+    peft_config = get_peft_config(model_args)
+
     model = model_type.from_pretrained(
         model_args.model_name_or_path,
         attn_implementation=model_args.attn_implementation,
