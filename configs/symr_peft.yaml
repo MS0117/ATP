@@ -1,5 +1,5 @@
 # Model arguments
-model_name_or_path: "deepseek-ai/DeepSeek-Prover-V1.5-SFT" #deepseek-ai/DeepSeek-Prover-V1.5-SFT, openai-community/gpt2 ContextualAI/Llama-200M
+model_name_or_path: "openai-community/gpt2" #deepseek-ai/DeepSeek-Prover-V1.5-SFT, openai-community/gpt2 deepseek-ai/deepseek-coder-1.3b-base
 model_revision: main
 torch_dtype: bfloat16
 attn_implementation: flash_attention_2
@@ -15,21 +15,21 @@ do_eval: false
 tf32: true
 torch_compile: true
 optim: paged_adamw_8bit
-gradient_accumulation_steps: 1
+gradient_accumulation_steps: 16
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: true
 hub_model_id:
-output_dir: ./
+output_dir: /projects/minsu/ATP_checkpoints
 learning_rate: 1.0e-05
 log_level: info
 logging_steps: 5
 logging_strategy: steps
 lr_scheduler_type: cosine
 max_steps: -1
-num_train_epochs: 3
+num_train_epochs: 2
 overwrite_output_dir: true
-per_device_train_batch_size: 32
+per_device_train_batch_size: 4
 remove_unused_columns: true
 report_to:
 - tensorboard
@@ -51,14 +51,18 @@ beta: 0.04
 num_generations: 4
 num_iterations: 1
 use_vllm: true
-vllm_gpu_memory_utilization: 0.7
+vllm_device: auto
+vllm_gpu_memory_utilization: 0.5
 loss_function: "rloo"
 token_level_kl: true
 normalize_advantage: true
 kl_coef: true
 cliprange: 0.2
 whiten_rewards: true
-max_completion_length: 256    #gpt2: 256, others: 2048
+max_completion_length: 256   #gpt2: 256, others: 2048
+
 # Hub
 push_to_hub: false
 hub_private_repo: true
+wandb_project: ATP
+wandb_entity: kimminsu

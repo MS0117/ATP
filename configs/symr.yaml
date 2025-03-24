@@ -15,7 +15,7 @@ do_eval: false
 tf32: true
 torch_compile: true
 optim: paged_adamw_8bit
-gradient_accumulation_steps: 1
+gradient_accumulation_steps: 16
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: False
@@ -29,7 +29,7 @@ lr_scheduler_type: cosine
 max_steps: -1
 num_train_epochs: 3
 overwrite_output_dir: true
-per_device_train_batch_size: 32
+per_device_train_batch_size: 4
 remove_unused_columns: true
 report_to:
 - tensorboard
@@ -51,7 +51,7 @@ normalize_advantage: true
 kl_coef: true
 cliprange: 0.2
 whiten_rewards: true
-max_completion_length: 256    #gpt2: 256, others: 2048
+max_completion_length: 512    #gpt2: 256, others: 2048
 # Hub
 push_to_hub: false
 hub_private_repo: true
