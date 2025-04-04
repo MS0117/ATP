@@ -10,6 +10,7 @@ from .prover.lean.verifier import Lean4ServerScheduler
 import re
 from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig
 import os
+from easydict import EasyDict as AttrDict
 #os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 def compute_line_offsets(text: str):
@@ -56,83 +57,171 @@ def mark_char_scores(char_scores, full_text, error, data):
         end_abs = line_offsets[end_line - 1] + (end_col)
 
         # Mark the scores
-        error = item.get("error", False)  # or however you detect an "error"
-        score_to_mark = -1 if error else 1
+        is_error = (item.get("severity") == "error")
+        score_to_mark = -1 if is_error else 1
+        #print("is_error",is_error)
         for i in range(start_abs, end_abs):
             if 0 <= i < len(char_scores):
                 char_scores[i] = score_to_mark
 
-"""    
-def compute_token_scores_for_output(prompts, completions, outputs_list, tokenizer):
-        
-        For each (prompt, completion, output) triple:
-          - Combine prompt + completion into full_text
-          - Build a per-char score array (+1 by default)
-          - Mark error ranges as -1
-          - Tokenize full_text (with offsets)
-          - Compute token scores = average of char scores in [start, end)
-          - Keep only tokens that lie within the completion portion (start >= len(prompt))
-          - Return a list of token_score arrays, each item is a list of floats (or ints).
-            We also return the actual text tokens if you want to see them.
-    
-    
-        1: Characters not in errors (default).
-        -1: Characters within errors (set by the messages step).
-    
-        
-        all_token_scores = []
-        all_token_texts = []  # If you want to keep track of the actual token strings
-    
-        for prompt, completion, out_data in zip(prompts, completions, outputs_list):
-            full_text = prompt + completion
-    
-            # 1) Build pos_scores (per-character)
-            pos_scores = [1] * len(full_text)
-    
-            # 3) If there are errors, mark -1
-            if len(out_data["errors"]) > 0: #"errors" in out_data["errors"]:
-                mark_char_scores(pos_scores, full_text,True, out_data["errors"])
-    
-            # 4) Tokenize full_text
-            #    Make sure you use a fast tokenizer with offset mappings
-            encoded = tokenizer(
-                full_text,
-                return_offsets_mapping=True,
-                add_special_tokens=False
+def mark_char_scores_snippet(char_scores, snippet_text, data, default_to_error=False):
+    """
+    Mark +1 or -1 in 'char_scores' for each dict in 'data'.
+    Here, 'snippet_text' is *just the code snippet*, so line references
+    are (1-based) within that snippet.
+    """
+    line_offsets, _ = compute_line_offsets(snippet_text)
+
+    for item in data:
+        pos = item.get("pos")
+        end_pos = item.get("endPos")
+        if not pos and not end_pos:
+            continue
+        # If either is missing, treat them as the same
+        if not pos:
+            pos = end_pos
+        if not end_pos:
+            end_pos = pos
+
+        start_line = pos["line"]
+        start_col  = pos["column"]
+        end_line   = end_pos["line"]
+        end_col    = end_pos["column"]
+
+        # The snippet_text is the entire domain, so no line_offset needed
+        start_line_idx = (start_line - 1)
+        end_line_idx   = (end_line   - 1)
+
+        # Boundary checks
+        if not (0 <= start_line_idx < len(line_offsets)):
+            continue
+        if not (0 <= end_line_idx < len(line_offsets)):
+            continue
+
+        start_abs = line_offsets[start_line_idx] + (start_col - 1)
+        end_abs   = line_offsets[end_line_idx]   + end_col
+
+        # If "severity" is "error" or we forced default_to_error => -1
+        # Tactics => +1
+        is_error = (item.get("severity") == "error") or default_to_error
+        score_to_mark = -1 if is_error else 1
+
+        # Fill char_scores in snippet
+        for i in range(start_abs, end_abs):
+            if 0 <= i < len(char_scores):
+                char_scores[i] = score_to_mark
+
+def compute_tactic_scores_for_output_deepseek(
+    prompts,
+    completions,
+    outputs_list,
+    extracted_codes,
+    tokenizer
+):
+    """
+    For each (prompt, completion, out_data, extracted_code):
+      1) We compute +1 or -1 *only* in the code snippet (extracted_code),
+         using line/column references from out_data (tactics/errors).
+      2) We locate that snippet *anywhere* inside (prompt + completion)
+         and copy those +1/-1 scores into pos_scores for full_text.
+      3) We tokenize the full_text, then compute average char scores
+         only for tokens that lie fully in the completion portion
+         (where token.start >= len(prompt)).
+
+    Returns: all_token_scores, all_token_texts
+    """
+    all_token_scores = []
+    all_token_texts  = []
+    binary_pass_score=[]
+    for i, (prompt, completion, out_data, snippet) in enumerate(
+        zip(prompts, completions, outputs_list, extracted_codes)
+    ):
+        full_text = prompt + completion
+
+        # Build a big pos_scores array for the entire full_text
+        pos_scores = [0]*len(full_text)
+
+        # (A) Score the snippet by line/column
+        snippet_pos_scores = [0]*len(snippet)
+
+        # Mark snippet's tactics => +1
+        if "tactics" in out_data and out_data["tactics"]:
+            mark_char_scores_snippet(
+                snippet_pos_scores,
+                snippet,
+                out_data["tactics"],
+                default_to_error=False
             )
-            input_ids = encoded["input_ids"]
-            offsets = encoded["offset_mapping"]  # list of (start, end)
-    
-            # 5) For each token, compute the average of the char scores in [start, end)
-            token_scores = []
-            token_texts = []
-            prompt_len = len(prompt)
-    
-            for tid, (start, end) in zip(input_ids, offsets):           #character-token alignment
-                # If you only want tokens fully in the completion portion,
-                # check if start >= prompt_len
-                # (If you want partial coverage for tokens that straddle the boundary,
-                # you'd have to do a partial average or something more advanced.)
-                if start >= prompt_len:
-                    # sum / len for the slice
-                    slice_scores = pos_scores[start:end]
-                    if len(slice_scores) > 0:
-                        avg_score = sum(slice_scores) / len(slice_scores)
-                    else:
-                        avg_score = 0  # edge case if start==end
-    
-                    # The raw text for this token
-                    token_str = full_text[start:end]
-    
-                    token_scores.append(avg_score)
-                    token_texts.append(token_str)
-    
-            all_token_scores.append(token_scores)
-            all_token_texts.append(token_texts)
-            #print("all_token_scores",all_token_scores)
-           # print("all_token_texts",all_token_texts)
-        return all_token_scores, all_token_texts
-"""
+
+        # Mark snippet's errors => -1
+        if "errors" in out_data and out_data["errors"]:
+            mark_char_scores_snippet(
+                snippet_pos_scores,
+                snippet,
+                out_data["errors"],
+                default_to_error=True
+            )
+
+        # (B) Find snippet in the full_text, so we can map snippet scores
+        snippet_index = full_text.find(snippet)
+        if snippet_index != -1:
+            for idx in range(len(snippet)):
+                # Copy snippet_pos_scores into pos_scores
+                if 0 <= snippet_index + idx < len(pos_scores):
+                    # If snippet_pos_scores[idx] == -1, that overrides
+                    # a +1. If pos_scores is already -1, keep it -1, etc.
+                    # We'll do: error overrides tactic if both exist.
+                    if pos_scores[snippet_index + idx] == -1:
+                        continue
+                    pos_scores[snippet_index + idx] = snippet_pos_scores[idx]
+
+        else:
+            # If snippet wasn't found, we just won't mark anything.
+            # Or you could log a warning, etc.
+            #print("no matching")
+            pass
+
+        # (C) Tokenize full_text and compute averages
+        encoded = tokenizer(
+            full_text,
+            return_offsets_mapping=True,
+            add_special_tokens=False
+        )
+        input_ids = encoded["input_ids"]
+        offsets   = encoded["offset_mapping"]
+
+        token_scores = []
+        token_texts  = []
+        prompt_len   = len(prompt)
+
+        # We only keep tokens fully in the completion portion => start >= prompt_len
+        for tid, (start, end) in zip(input_ids, offsets):
+            if start >= prompt_len:
+                slice_scores = pos_scores[start:end]
+                if slice_scores:
+                    avg_score = sum(slice_scores)/len(slice_scores)
+                else:
+                    avg_score = 0.0
+
+                token_str = full_text[start:end]
+                token_scores.append(avg_score)
+                token_texts.append(token_str)
+
+        if out_data['complete']=='True':
+            binary_pass_score.append(1)
+        else:
+            binary_pass_score.append(0)
+
+
+        # Debug print
+        #print(f"--- Completion #{i} ---")
+        #print("Snippet offset in full_text:", snippet_index)
+        #print("Token scores =>", token_scores)
+
+        all_token_scores.append(token_scores)
+        all_token_texts.append(token_texts)
+
+    return all_token_scores, all_token_texts,binary_pass_score
 
 
 def compute_tactic_scores_for_output(prompts, completions, outputs_list, tokenizer):         #token-level reward
@@ -152,9 +241,6 @@ def compute_tactic_scores_for_output(prompts, completions, outputs_list, tokeniz
     1: Characters within tactics (set by the tactics step).
     -1: Characters within errors (set by the messages step; overrides tactics if overlapping, since it comes later).
 
-
-
-
     """
     all_token_scores = []
     all_token_texts = []  # If you want to keep track of the actual token strings
@@ -173,7 +259,7 @@ def compute_tactic_scores_for_output(prompts, completions, outputs_list, tokeniz
         # 3) If there are errors, mark -1
         if len(out_data.get("errors", [])) > 0:
             mark_char_scores(pos_scores, full_text, True, out_data["errors"])
-
+        #print("pos_scores",pos_scores)
         # 4) Tokenize full_text
         #    Make sure you use a fast tokenizer with offset mappings
         encoded = tokenizer(
@@ -212,7 +298,7 @@ def compute_tactic_scores_for_output(prompts, completions, outputs_list, tokeniz
                 token_id.append(tid)
         #print("index",i)
         #print("scoring_completion_token_id", token_id)
-        #print("scoring_completion_token_score", token_id)
+        #print("scoring_completion_token_score", token_scores)
         all_token_scores.append(token_scores)
         all_token_texts.append(token_texts)
 
@@ -289,468 +375,277 @@ def build_tactic_tree(full_text: str, tactics: list) -> list:
     return roots
 
 
-def compute_tactic_scores_with_parents_v1(                              #tactic-level
-    prompts, completions, outputs_list, tokenizer, gamma=0.8
-):
+def gather_intervals_no_split(snippet_text, out_data):
     """
-    Version 1:
-    All parent's tokens get (parent_base_score + gamma * child_score).
-    That means if a tactic has 2 children, each child's final tactic score
-    is added (with discount) onto the parent.
+    Return a list of intervals (startAbs, endAbs, label) in snippet_text coordinates.
+    Tactics => +1, Errors => -1.
     """
-    all_token_scores = []
-    all_token_texts  = []
+    intervals = []
+    line_offsets, _ = compute_line_offsets(snippet_text)
 
-    for prompt, completion, out_data in zip(prompts, completions, outputs_list):
-        full_text = prompt + completion
+    def to_abs(pos):
+        if not pos:
+            return None
+        line_idx = pos["line"] - 1
+        col_idx = pos["column"] - 1
+        if line_idx < 0 or line_idx >= len(line_offsets):
+            return None
+        return line_offsets[line_idx] + col_idx
 
-        # 1) Mark the baseline +1 for tactics, -1 for errors (character-level).
-        pos_scores = [0] * len(full_text)
-        # 2) give 1 to all tactics
-        if len(out_data.get("tactics", [])) > 0:
-            mark_char_scores(pos_scores, full_text, False, out_data["tactics"])
-
-        # 3) If there are errors, mark -1
-        if len(out_data.get("errors", [])) > 0:
-            mark_char_scores(pos_scores, full_text, True, out_data["errors"])
-
-        # 2) Build the tactic tree
-        tactics = out_data.get("tactics", [])
-        roots   = build_tactic_tree(full_text, tactics)
-
-        # 3) Convert pos_scores -> token_scores. We'll do that *before* we do the parent-child merges.
-        encoded = tokenizer(
-            full_text, return_offsets_mapping=True, add_special_tokens=False
-        )
-        input_ids = encoded["input_ids"]
-        offsets   = encoded["offset_mapping"]
-        #Tokens: ['hello', 'world', '!']
-        #Offsets: [(0, 5), (6, 11), (11, 12)]
-
-        # We'll store the raw token scores initially from +1 / -1 marking.
-        raw_token_scores = []
-        prompt_len       = len(prompt)
-
-        for (start, end) in offsets:
-            if start >= prompt_len:
-                slice_scores = pos_scores[start:end]
-                avg_score    = sum(slice_scores) / len(slice_scores) if slice_scores else 0
-                raw_token_scores.append(avg_score)
-            else:
-                # Token overlaps with prompt or is entirely in prompt => not counting for completion
-                raw_token_scores.append(0.0)
-
-        # 4) Turn these raw_token_scores into an array so we can read/write
-        raw_token_scores = torch.tensor(raw_token_scores, dtype=torch.float)
-
-        # 5) For each tactic, compute baseline tactic score = average of tokens in that region
-        #    (in the completion portion only).
-        #    We'll store it in tactic["_score"].
-        def compute_tactic_scores_dfs(node):                                    #t
-            # 1) Identify parent's “own tokens” by subtracting child ranges
-            child_ranges = []
-            for c in node.get("children", []):
-                c_start, c_end = find_token_span_for_tactic(c, offsets, prompt_len)
-                child_ranges.append((c_start, c_end))
-            child_ranges.sort(key=lambda r: r[0])  # sort by start
-
-            parent_start, parent_end = find_token_span_for_tactic(node, offsets, prompt_len)
-
-            # subtract out children’s intervals from [parent_start, parent_end)
-            parent_own_indices = []
-            prev = parent_start
-            for (c_start, c_end) in child_ranges:
-                if c_start > prev:
-                    # add [prev, c_start)
-                    parent_own_indices.extend(range(prev, c_start))
-                # skip child range
-                prev = max(prev, c_end)
-            # add leftover if there's any
-            if prev < parent_end:
-                parent_own_indices.extend(range(prev, parent_end))
-
-            # gather the parent's own token scores
-            parent_own_scores = [raw_token_scores[i] for i in parent_own_indices]
-            if len(parent_own_scores) == 0:
-                baseline_score = 0.0
-            else:
-                baseline_score = float(np.mean(parent_own_scores))
-
-            # 2) Recursively score children
-            child_sum = 0.0
-            for c in node.get("children", []):
-                child_score = compute_tactic_scores_dfs(c)
-                child_sum += child_score
-
-            final_score = baseline_score + gamma * child_sum
-            node["_score"] = final_score
-            return final_score
-
-        # We define a helper to find which tokens belong to a tactic:
-        def find_token_span_for_tactic(tactic, offsets, prompt_len):
-            """Returns (start_idx, end_idx) in token space for the tactic's absolute [start, end)."""
-            abs_start = tactic["abs_start"]
-            abs_end   = tactic["abs_end"]
-            # find first token whose offset range start >= abs_start
-            # and last token whose offset range end <= abs_end
-            # We'll do a naive linear search for brevity.
-            start_idx = 0
-            while start_idx < len(offsets) and offsets[start_idx][1] <= abs_start:
-                start_idx += 1
-            # end_idx is the first token whose offset start >= abs_end
-            end_idx = start_idx
-            while end_idx < len(offsets) and offsets[end_idx][0] < abs_end:
-                end_idx += 1
-            # Now we also need to skip tokens that lie partly in the prompt:
-            # We only want tokens beyond prompt_len
-            while start_idx < end_idx and offsets[start_idx][0] < prompt_len:
-                start_idx += 1
-            return (start_idx, end_idx)
-
-        # 6) Compute all tactic scores from the bottom up
-        for r in roots:
-            compute_tactic_scores_dfs(r)
-
-        # 7) Now that each tactic has a final score (including children),
-        #    we write that final score back into the parent's tokens. In version 1,
-        #    ALL parent tokens get parent_final_score.
-        final_token_scores = raw_token_scores.clone()  # copy
-        def apply_final_scores_dfs(node):
-            final_score = node["_score"]
-            (ts, te) = find_token_span_for_tactic(node, offsets, prompt_len)
-            if ts < te:
-                final_token_scores[ts:te] = final_score  # set them all
-
-            for c in node.get("children", []):
-                apply_final_scores_dfs(c)
-
-        for r in roots:
-            apply_final_scores_dfs(r)
-
-        # 8) Collect the token strings and final scores
-        token_texts_list = []
-        final_scores_list = []
-        idx_raw = 0
-        for i, (start, end) in enumerate(offsets):
-            if start >= prompt_len:
-                token_texts_list.append(full_text[start:end])
-                final_scores_list.append(final_token_scores[i].item())
-
-        all_token_scores.append(final_scores_list)
-        all_token_texts.append(token_texts_list)
-
-    return all_token_scores, all_token_texts
+    for t in out_data.get("tactics", []):
+        start = to_abs(t.get("pos") or t.get("endPos"))
+        end = to_abs(t.get("endPos") or t.get("pos"))
+        if start is not None and end is not None and end > start:
+            intervals.append((start, end, 1))
+    for e in out_data.get("errors", []):
+        start = to_abs(e.get("pos") or e.get("endPos"))
+        end = to_abs(e.get("endPos") or e.get("pos"))
+        if start is not None and end is not None and end > start:
+            intervals.append((start, end, -1))
+    return intervals
 
 
-
-
-
-
-def compute_tactic_scores_with_parents_bottom_up(
-    prompts, completions, outputs_list, tokenizer, gamma=0.9
-):
+def convert_snippet_intervals_to_full_text(prompt, completion, snippet, intervals):
     """
-    Version 1:
-    All parent's tokens get (parent_base_score + gamma * child_score).
-    That means if a tactic has 2 children, each child's final tactic score
-    is added (with discount) onto the parent.
+    Convert intervals in snippet coordinates into full-text coordinates.
     """
-    all_token_scores = []
-    all_token_texts  = []
+    full_text = prompt + completion
+    snippet_index = full_text.find(snippet)
+    if snippet_index == -1:
+        return []
+    abs_intervals = []
+    for (start_snip, end_snip, label) in intervals:
+        abs_start = snippet_index + start_snip
+        abs_end = snippet_index + end_snip
+        if 0 <= abs_start < len(full_text) and 0 < abs_end <= len(full_text):
+            abs_intervals.append((abs_start, abs_end, label))
+        #if label==1:
+            #print("abs_start",abs_start)
+            #print("abs_end",abs_end)
+    return abs_intervals
 
-    for prompt, completion, out_data in zip(prompts, completions, outputs_list):
-        full_text = prompt + completion
-
-        # 1) Mark the baseline +1 for tactics, -1 for errors (character-level).
-        pos_scores = [0] * len(full_text)
-        if "tactics" in out_data:
-            mark_char_scores(pos_scores, full_text, False, out_data["tactics"])
-        if "errors" in out_data:
-            mark_char_scores(pos_scores, full_text, True,  out_data["errors"])
-
-        # 2) Build the tactic tree
-        tactics = out_data.get("tactics", [])
-        roots   = build_tactic_tree(full_text, tactics)
-
-        # 3) Convert pos_scores -> token_scores. We'll do that *before* we do the parent-child merges.
-        encoded = tokenizer(
-            full_text, return_offsets_mapping=True, add_special_tokens=False
-        )
-        input_ids = encoded["input_ids"]
-        offsets   = encoded["offset_mapping"]
-        #Tokens: ['hello', 'world', '!']
-        #Offsets: [(0, 5), (6, 11), (11, 12)]
-
-        # We'll store the raw token scores initially from +1 / -1 marking.
-        raw_token_scores = []
-        prompt_len       = len(prompt)
-
-        for (start, end) in offsets:
-            if start >= prompt_len:
-                slice_scores = pos_scores[start:end]
-                avg_score    = sum(slice_scores) / len(slice_scores) if slice_scores else 0
-                raw_token_scores.append(avg_score)
-            else:
-                # Token overlaps with prompt or is entirely in prompt => not counting for completion
-                raw_token_scores.append(0.0)
-
-        # 4) Turn these raw_token_scores into an array so we can read/write
-        raw_token_scores = torch.tensor(raw_token_scores, dtype=torch.float)
-
-        # 5) For each tactic, compute baseline tactic score = average of tokens in that region
-        #    (in the completion portion only).
-        #    We'll store it in tactic["_score"].
-        def compute_tactic_scores_dfs(node):
-            # node is a tactic dict
-            token_start, token_end = find_token_span_for_tactic(
-                node, offsets, prompt_len
-            )
-            # average of raw_token_scores in that token range
-            tactic_tokens = raw_token_scores[token_start:token_end]
-            if len(tactic_tokens) == 0:
-                baseline_score = 0.0
-            else:
-                baseline_score = tactic_tokens.mean().item()
-
-            # compute children recursively
-            child_sum = 0.0
-            for c in node.get("children", []):
-                child_score = compute_tactic_scores_dfs(c)
-                child_sum  += child_score
-
-            # final tactic score = baseline + gamma * sum_of_children
-            final_score = baseline_score + gamma * child_sum
-            node["_score"] = final_score
-            return final_score
-
-        # We define a helper to find which tokens belong to a tactic:
-        def find_token_span_for_tactic(tactic, offsets, prompt_len):
-            """Returns (start_idx, end_idx) in token space for the tactic's absolute [start, end)."""
-            abs_start = tactic["abs_start"]
-            abs_end   = tactic["abs_end"]
-            # find first token whose offset range start >= abs_start
-            # and last token whose offset range end <= abs_end
-            # We'll do a naive linear search for brevity.
-            start_idx = 0
-            while start_idx < len(offsets) and offsets[start_idx][1] <= abs_start:
-                start_idx += 1
-            # end_idx is the first token whose offset start >= abs_end
-            end_idx = start_idx
-            while end_idx < len(offsets) and offsets[end_idx][0] < abs_end:
-                end_idx += 1
-            # Now we also need to skip tokens that lie partly in the prompt:
-            # We only want tokens beyond prompt_len
-            while start_idx < end_idx and offsets[start_idx][0] < prompt_len:
-                start_idx += 1
-            return (start_idx, end_idx)
-
-        # 6) Compute all tactic scores from the bottom up
-        for r in roots:
-            compute_tactic_scores_dfs(r)
-
-        # 7) Now that each tactic has a final score (including children),
-        #    we write that final score back into the parent's tokens. In version 1,
-        #    ALL parent tokens get parent_final_score.
-        final_token_scores = raw_token_scores.clone()  # copy
-        def apply_final_scores_dfs(node):
-            final_score = node["_score"]
-            (ts, te) = find_token_span_for_tactic(node, offsets, prompt_len)
-            if ts < te:
-                final_token_scores[ts:te] = final_score  # set them all
-
-            for c in node.get("children", []):
-                apply_final_scores_dfs(c)
-
-        for r in roots:
-            apply_final_scores_dfs(r)
-
-        # 8) Collect the token strings and final scores
-        token_texts_list = []
-        final_scores_list = []
-        idx_raw = 0
-        for i, (start, end) in enumerate(offsets):
-            if start >= prompt_len:
-                token_texts_list.append(full_text[start:end])
-                final_scores_list.append(final_token_scores[i].item())
-
-        all_token_scores.append(final_scores_list)
-        all_token_texts.append(token_texts_list)
-
-    return all_token_scores, all_token_texts
-
-
-
-
-
-
-def compute_tactic_scores_with_parents_v2(
-    prompts, completions, outputs_list, tokenizer, gamma=0.8
-):
     """
-    Version 2 (generalized):
-      - We compute each tactic's _baseline and _score
-        (the latter includes children: baseline + gamma*sum(child) ).
-      - During 'apply', we do partial coverage:
-          * For each token, if it is strictly before a child's start offset,
-            we add that child's final.
-          * The child's own region is overwritten by the child's final.
-          * Any tokens after the last child's start get no more child bonus (just parent's baseline).
+    def mark_char_scores_snippet(char_scores, snippet_text, data, default_to_error=False):
+        
+        #Mark +1 or -1 in 'char_scores' for each dict in 'data' using snippet_text.
+        
+        line_offsets, _ = compute_line_offsets(snippet_text)
+        for item in data:
+            pos = item.get("pos")
+            end_pos = item.get("endPos")
+            if not pos and not end_pos:
+                continue
+            if not pos:
+                pos = end_pos
+            if not end_pos:
+                end_pos = pos
+            start_line = pos["line"]
+            start_col = pos["column"]
+            end_line = end_pos["line"]
+            end_col = end_pos["column"]
+            start_line_idx = start_line - 1
+            end_line_idx = end_line - 1
+            if not (0 <= start_line_idx < len(line_offsets)):
+                continue
+            if not (0 <= end_line_idx < len(line_offsets)):
+                continue
+            start_abs = line_offsets[start_line_idx] + (start_col - 1)
+            end_abs = line_offsets[end_line_idx] + end_col
+            is_error = (item.get("severity") == "error") or default_to_error
+            score_to_mark = -1 if is_error else 1
+            for i in range(start_abs, end_abs):
+                if 0 <= i < len(char_scores):
+                    char_scores[i] = score_to_mark
+    """
+
+def deduplicate_intervals(intervals):
+
+    if not intervals:
+        return []
+
+    # (start, end) 기준으로 정렬 (label은 정렬 순서에 영향을 주지 않음)
+    intervals = sorted(intervals, key=lambda x: (x[0], x[1]))
+    deduped = []
+    i = 0
+    while i < len(intervals):
+        start, end, label = intervals[i]
+        # 동일한 (start, end)를 가지는 interval들을 candidates에 모음.
+        candidates = [(start, end, label)]
+        j = i + 1
+        while j < len(intervals) and intervals[j][0] == start and intervals[j][1] == end:
+            candidates.append(intervals[j])
+            j += 1
+        # candidates 중 하나라도 label이 -1이면, -1을 유지.
+        if any(c[2] == -1 for c in candidates):
+            deduped.append((start, end, -1))
+        else:
+            deduped.append(candidates[0])
+        i = j
+    return deduped
+
+
+def compute_returns_no_split(full_text, intervals, tokenizer, gamma=0.9, prompt_len=0):
+    """
+    Given full_text and a list of absolute intervals (start, end, label),
+    assign a fixed immediate reward = label for each interval,
+    discount them backward, and compute baseline and advantages.
+    """
+    intervals=deduplicate_intervals(intervals)
+    intervals = sorted(intervals, key=lambda x: x[0])
+    # For fixed reward, each interval's reward is simply its label.
+    rewards = [label for (start, end, label) in intervals]
+    discounted = []
+    running = 0.0
+    for r in reversed(rewards):
+        running = r + gamma * running
+        discounted.insert(0, running)
+    #print("discounted",discounted)
+    baseline = sum(discounted) / len(discounted) if discounted else 0.0
+    advantages = [d - baseline for d in discounted]
+    #print("advantages", advantages)
+    results = []
+    for (start, end, label), ret, adv in zip(intervals, discounted, advantages):
+        results.append({
+            "start": start,
+            "end": end,
+            "label": label,
+            "immediate_reward": label,
+            "discounted_return": ret,
+            "advantage": adv
+        })
+    results = sorted(results, key=lambda x: (0 if x["label"] == 1 else 1, x["start"]))
+    return results, baseline
+
+
+def assign_advantage_to_tokens(full_text, offsets,snippet, intervals_info, prompt_len):
+    """
+    Given a list of intervals_info (each with keys "start", "end", "label"),
+    assign the full advantage (here using the label as the advantage value)
+    to any token whose span (given by offsets) overlaps the interval,
+    but only if the token is in the completion portion (i.e. its start >= prompt_len).
+
+    If a token overlaps multiple intervals, here we assign the advantage of the first matching interval.
+    """
+
+    character_adv = [0] * len(full_text)
+
+
+    # (B) Find snippet in the full_text, so we can map snippet scores
+    snippet_index = full_text.find(snippet)
+    if snippet_index != -1:
+        for info in intervals_info:
+            int_start = info["start"]
+            int_end = info["end"]
+            adv = info["advantage"]  # or use info["advantage"] if computed separately
+            character_adv[int_start:int_end+1]=[adv] * (int_end - int_start + 1)
+
+
+    else:
+        # If snippet wasn't found, we just won't mark anything.
+        # Or you could log a warning, etc.
+        # print("no matching")
+        pass
+
+
+    return character_adv
+
+def compute_token_level_advantages(prompts, completions, outputs_list, tokenizer, extracted_codes, type, gamma=0.9):
+    """
+    Process each sample (prompt, completion, out_data, extracted_code) individually.
+    Returns lists (one per sample) of token_scores, token_texts, token_advantages, intervals_info, and baseline.
     """
     all_token_scores = []
     all_token_texts = []
+    binary_pass_score = []
 
-    for prompt, completion, out_data in zip(prompts, completions, outputs_list):
+
+    for prompt, completion, out_data, snippet in zip(prompts, completions, outputs_list, extracted_codes):
         full_text = prompt + completion
-
-        # 1) Mark baseline (+1 tactic, -1 error)
-        pos_scores = [0] * len(full_text)
-        # 2) give 1 to all tactics
-        if len(out_data.get("tactics", [])) > 0:
-            mark_char_scores(pos_scores, full_text, False, out_data["tactics"])
-
-        # 3) If there are errors, mark -1
-        if len(out_data.get("errors", [])) > 0:
-            mark_char_scores(pos_scores, full_text, True, out_data["errors"])
-
-        # 2) Build the tactic tree
-        tactics = out_data.get("tactics", [])
-        roots   = build_tactic_tree(full_text, tactics)
-
-        # 3) Convert pos_scores -> raw token-level array
-        encoded = tokenizer(
-            full_text,
-            return_offsets_mapping=True,
-            add_special_tokens=False
-        )
-        offsets = encoded["offset_mapping"]
+        # Use the provided snippet (ensure it's a string)
         prompt_len = len(prompt)
+        if not isinstance(snippet, str):
+            continue  # or raise an error
+        # 1. Gather intervals from out_data (in snippet coordinates)
 
-        raw_token_scores_list = []
-        for (start, end) in offsets:
-            if start >= prompt_len:
-                slice_scores = pos_scores[start:end]
-                if slice_scores:
-                    avg_score = sum(slice_scores) / len(slice_scores)
-                else:
-                    avg_score = 0.0
-                raw_token_scores_list.append(avg_score)
+        if type=='advantage':
+            snippet_intervals = gather_intervals_no_split(snippet, out_data)
+            # 2. (Optionally merge tactic intervals; here we assume no splitting is needed)
+            # For simplicity, we assume out_data gives the intervals correctly.
+            abs_intervals = convert_snippet_intervals_to_full_text(prompt, completion, snippet, snippet_intervals)
+
+            intervals_info, baseline = compute_returns_no_split(full_text, abs_intervals, tokenizer, gamma=gamma,
+                                                                prompt_len=prompt_len)
+            # 3. Tokenize full_text
+            #print("intervals_info", intervals_info)
+        encoded = tokenizer(full_text, return_offsets_mapping=True, add_special_tokens=False)
+        offsets = encoded["offset_mapping"]
+        input_ids = encoded["input_ids"]
+        # 4. Build pos_scores at character level
+        pos_scores = [0] * len(full_text)
+        snippet_pos_scores = [0]*len(snippet)
+
+        token_scores = []
+        token_texts = []
+
+
+        if type=='reward':
+            if "tactics" in out_data and out_data["tactics"]:
+                mark_char_scores_snippet(snippet_pos_scores, snippet, out_data["tactics"], default_to_error=False)
+            if "errors" in out_data and out_data["errors"]:
+                mark_char_scores_snippet(snippet_pos_scores, snippet, out_data["errors"], default_to_error=True)
+            # 5. Compute token-level average score (only for tokens in completion)
+
+
+            #6. compute token level reward
+            snippet_index = full_text.find(snippet)
+            if snippet_index != -1:
+                for idx in range(len(snippet)):
+                    # Copy snippet_pos_scores into pos_scores
+                    if 0 <= snippet_index + idx < len(pos_scores):
+                        # If snippet_pos_scores[idx] == -1, that overrides
+                        # a +1. If pos_scores is already -1, keep it -1, etc.
+                        # We'll do: error overrides tactic if both exist.
+                        if pos_scores[snippet_index + idx] == -1:
+                            continue
+                        pos_scores[snippet_index + idx] = snippet_pos_scores[idx]
+
             else:
-                raw_token_scores_list.append(0.0)
-        raw_token_scores = torch.tensor(raw_token_scores_list, dtype=torch.float)
+                # If snippet wasn't found, we just won't mark anything.
+                # Or you could log a warning, etc.
+                # print("no matching")
+                pass
 
-        # 4) DFS to compute each node's baseline and final
-        def find_token_span_for_tactic(tactic):
-            abs_start = tactic["abs_start"]
-            abs_end   = tactic["abs_end"]
-            start_idx = 0
-            while start_idx < len(offsets) and offsets[start_idx][1] <= abs_start:
-                start_idx += 1
-            end_idx = start_idx
-            while end_idx < len(offsets) and offsets[end_idx][0] < abs_end:
-                end_idx += 1
-            # skip tokens in prompt
-            while start_idx < end_idx and offsets[start_idx][0] < prompt_len:
-                start_idx += 1
-            return (start_idx, end_idx)
+        # 7. Assign advantages to tokens based on intervals_info
+        elif type=='advantage':
+            character_advantages = assign_advantage_to_tokens(full_text, offsets,snippet, intervals_info,prompt_len)
 
-        def compute_tactic_scores_dfs(node):
-            ts, te = find_token_span_for_tactic(node)
-            if te > ts:
-                baseline = raw_token_scores[ts:te].mean().item()
-            else:
-                baseline = 0.0
-            node["_baseline"] = baseline
-
-            child_sum = 0.0
-            for c in node.get("children", []):
-                child_sum += compute_tactic_scores_dfs(c)
-
-            final_score = baseline + gamma * child_sum
-            node["_score"] = final_score
-            return final_score
-
-        for r in roots:
-            compute_tactic_scores_dfs(r)
-
-        # 5) Now apply partial coverage
-        final_token_scores = raw_token_scores.clone()
-
-        def apply_partial_coverage(node):
-            """
-            We'll treat the parent's region as segments separated by child start offsets:
-              - segment from parent's start to child1 start => baseline + sum(of all children that haven't started yet)
-              - child's region => child's final (recursively)
-              - segment from child1 end to child2 start => baseline + sum(of children that haven't started yet), etc.
-              - after last child => baseline (no more children upcoming).
-            """
-            node_ts, node_te = find_token_span_for_tactic(node)
-            parent_baseline  = node["_baseline"]
-            children_info = []
-            for c in node.get("children", []):
-                c_ts, c_te = find_token_span_for_tactic(c)
-                children_info.append((c, c_ts, c_te))
-            # sort children by start offset
-            children_info.sort(key=lambda x: x[1])
-
-            pointer = node_ts
-
-            # We'll keep a "remaining children" set in ascending start order
-            # so we can see which children haven't "started" yet.
-            # Because once we cross child i's start, we no longer add child i's final to subsequent tokens.
-            remaining = children_info[:]  # copy
-
-            for idx, (child, c_ts, c_te) in enumerate(children_info):
-                if pointer < c_ts and pointer < node_te:
-                    segment_end = min(c_ts, node_te)
-                    # among 'remaining', find which children have c_j_ts >= pointer
-                    # i.e. haven't started yet
-                    sum_of_child_final = 0.0
-                    for (c_j, c_j_ts, c_j_te) in remaining:
-                        # If c_j_ts > pointer, we are "before" that child
-                        # For equality edge cases, decide whether "before" means strictly < or ≤
-                        # We'll do strictly <. So if c_j_ts == pointer, that means we are exactly at child start => not before.
-                        if c_j_ts > pointer:
-                            sum_of_child_final += c_j["_score"]
-
-                    # parent's baseline + sum_of_child_final
-                    final_token_scores[pointer:segment_end] = parent_baseline + sum_of_child_final      #??gamma????
-
-                # now we apply the child's region
-                apply_partial_coverage(child)
-
-                # move pointer to child's end
-                pointer = max(pointer, c_te)
-                # we've "passed" child start, so remove it from 'remaining'
-                if child in [rc[0] for rc in remaining]:
-                    remaining.remove((child, c_ts, c_te))
-
-            # after the last child, we do [pointer, node_te)
-            if pointer < node_te:
-                sum_of_child_final = 0.0
-                for (c_j, c_j_ts, c_j_te) in remaining:
-                    if c_j_ts > pointer:
-                        sum_of_child_final += c_j["_score"]
-                final_token_scores[pointer:node_te] = parent_baseline + sum_of_child_final
-
-
-        for root in roots:
-            apply_partial_coverage(root)
-
-
-        # 6) Collect final tokens in the completion portion
-        token_texts_list  = []
-        final_scores_list = []
-        for i, (start, end) in enumerate(offsets):
+        for tid, (start, end) in zip(input_ids, offsets):
             if start >= prompt_len:
-                token_texts_list.append(full_text[start:end])
-                final_scores_list.append(final_token_scores[i].item())
-
-        all_token_scores.append(final_scores_list)
-        all_token_texts.append(token_texts_list)
-
-    return all_token_scores, all_token_texts
+                if type == 'reward':
+                    slice_scores = pos_scores[start:end]
+                    avg = sum(slice_scores) / len(slice_scores) if slice_scores else 0.0
+                    token_scores.append(avg)
 
 
+                elif type=='advantage':
+                    slice_adv_scores = character_advantages[start:end]
+                    avg = sum(slice_adv_scores) / len(slice_adv_scores) if slice_adv_scores else 0.0
+                    token_scores.append(avg)
+                token_texts.append(full_text[start:end])
+
+        if out_data['complete']=='True':
+            binary_pass_score.append(1)
+        else:
+            binary_pass_score.append(0)
+
+        all_token_scores.append(token_scores)
+        all_token_texts.append(token_texts)
+
+
+
+
+
+    return all_token_scores, all_token_texts,  binary_pass_score,
 
 
 def list_of_lists_to_padded_tensor(list_of_lists, padding_value=0):
@@ -758,9 +653,9 @@ def list_of_lists_to_padded_tensor(list_of_lists, padding_value=0):
     Convert list of variable-length lists to a padded 2D Tensor
     shape: (batch_size, max_length_in_batch)
     """
-    for i,seq in enumerate(list_of_lists):
-        print("index",i)
-        print("len(seq)",len(seq))
+    #for i,seq in enumerate(list_of_lists):
+    #    print("index",i)
+    #    print("len(seq)",len(seq))
     max_len = max(len(seq) for seq in list_of_lists) if list_of_lists else 0
     batch_size = len(list_of_lists)
     padded_tensor = torch.full((batch_size, max_len), fill_value=padding_value, dtype=torch.float)
@@ -770,6 +665,7 @@ def list_of_lists_to_padded_tensor(list_of_lists, padding_value=0):
         padded_tensor[i, :length] = torch.tensor(seq, dtype=torch.float)
 
     return padded_tensor
+
 def extract_code(inputs):
     try:
         return re.search(r'```lean4\n(.*?)\n```', inputs, re.DOTALL).group(1)
@@ -778,28 +674,55 @@ def extract_code(inputs):
 
 def lean4_value_reward(prompts, completions, processing_class):
     texts = [p + c for p, c in zip(prompts, completions)]
+    #print("prompts",prompts)
+    #print("completions",completions)
     #print("texts1:",texts)
     #print("type",type(texts[0]))
     #print("\n\n")
-    lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=8, timeout=300, memory_limit=10, name='verifier')
+    lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=8, timeout=15,  memory_limit=10, name='verifier',extra_args=AttrDict(allTactics=True))
     #print("texts2:", texts)
-    request_id_list = lean4_scheduler.submit_all_request([extract_code(result) for result in texts])
+    extracted_code=[extract_code(result) for result in texts]
+    request_id_list = lean4_scheduler.submit_all_request(extracted_code)
     #extract lean code in the output and give to lean4_scheduler.submit_all_request, after this, each input goes to queue, and request_id_list receive each id.
     #Worker processes (Lean4ServerProcess) are already running Since p.start() was called in Lean4ServerScheduler.__init__(), all workers are already in their run() loops.
     #As soon as a task is enqueued, the next available worker process automatically picks it up.
-
     outputs_list = lean4_scheduler.get_all_request_outputs(request_id_list)
-    print("rewarding start")
-    all_token_scores, all_token_texts = compute_tactic_scores_for_output(
-        prompts, completions, outputs_list, processing_class)
+    #print("output_list",outputs_list)
+    #print("rewarding start")
+    all_token_scores, all_token_texts, binary_pass_score  = compute_token_level_advantages(
+        prompts, completions, outputs_list,processing_class,extracted_code, "advantage",0.9)
 
     # 3. Convert to a padded tensor if desired
     #    Each row in padded_scores corresponds to one (prompt+completion) example
     #    The columns are the tokens in the completion portion
     padded_scores = list_of_lists_to_padded_tensor(all_token_scores, padding_value=0)
-    print("padded_scores",padded_scores.size())
+    binary_score = [float(item["complete"]) for item in outputs_list]
+    #print("padded_scores",padded_scores.size())
     lean4_scheduler.close()
-    return padded_scores
+    return padded_scores ,binary_score
+
+
+
+
+def lean4_grpo_reward(prompts, completions, **kwargs):
+    texts = [p + c for p, c in zip(prompts, completions)]
+    #print("prompts",prompts)
+    #print("completions",completions)
+    #print("texts1:",texts)
+    #print("type",type(texts[0]))
+    #print("\n\n")
+    lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=8, timeout=15,  memory_limit=10, name='verifier',extra_args=AttrDict(allTactics=True))
+    #print("texts2:", texts)
+    extracted_code=[extract_code(result) for result in texts]
+    request_id_list = lean4_scheduler.submit_all_request(extracted_code)
+    #extract lean code in the output and give to lean4_scheduler.submit_all_request, after this, each input goes to queue, and request_id_list receive each id.
+    #Worker processes (Lean4ServerProcess) are already running Since p.start() was called in Lean4ServerScheduler.__init__(), all workers are already in their run() loops.
+    #As soon as a task is enqueued, the next available worker process automatically picks it up.
+    outputs_list = lean4_scheduler.get_all_request_outputs(request_id_list)
+    binary_score = [float(item["complete"]) for item in outputs_list]
+    lean4_scheduler.close()
+    return binary_score
+
 
 
 
@@ -821,142 +744,82 @@ def lean4_outcome_reward(result):
 
 def main():
     # Example data
-    prompt = "example (m n : Nat) : m - n = 0 ∨ m ≠ n := by\n"
+    prompt1 =  'Complete the following Lean 4 code with explanatory comments preceding each line of code:\n\n```lean4\nimport Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- A sequence of numbers is defined by $D_0=0,D_1=0,D_2=1$ and $D_n=D_{n-1}+D_{n-3}$ for $n\\ge 3$. What are the parities (evenness or oddness) of the triple of numbers $(D_{2021},D_{2022},D_{2023})$, where $E$ denotes even and $O$ denotes odd?\n\n$\\textbf{(A) }(O,E,O) \\qquad \\textbf{(B) }(E,E,O) \\qquad \\textbf{(C) }(E,O,E) \\qquad \\textbf{(D) }(O,O,E) \\qquad \\textbf{(E) }(O,O,O)$ Show that it is \\textbf{(C) }(E,O,E).-/\ntheorem amc12a_2021_p8 (d : ℕ → ℕ) (h₀ : d 0 = 0) (h₁ : d 1 = 0) (h₂ : d 2 = 1)\n    (h₃ : ∀ n ≥ 3, d n = d (n - 1) + d (n - 3)) : Even (d 2021) ∧ Odd (d 2022) ∧ Even (d 2023) := by\n'
 
-    completion = """  cases Decidable.em (m = n) with --m = n ∨ ¬m = n
-    |inl heq => rw [heq]; apply Or.inl; exact Nat.sub_self
-    |inr hne => apply Or.inr;"""
-
+    completion1 = "  /-\n  To solve the problem, we need to determine the parities of the numbers \\( D_{2021} \\), \\( D_{2022} \\), and \\( D_{2023} \\) in the sequence defined by \\( D_0 = 0 \\), \\( D_1 = 0 \\), \\( D_2 = 1 \\), and \\( D_n = D_{n-1} + D_{n-3} \\) for \\( n \\geq 3 \\).\n  1. **Initial Values**:\n     - \\( D_0 = 0 \\) (even)\n     - \\( D_1 = 0 \\) (even)\n     - \\( D_2 = 1 \\) (odd)\n  2. **Sequence Calculation**:\n     - For \\( n \\geq 3 \\), \\( D_n = D_{n-1} + D_{n-3} \\).\n  3. **Parity Patterns**:\n     - We observe the sequence's parity by calculating the first few terms:\n       - \\( D_3 = D_2 + D_0 = 1 + 0 = 1 \\) (odd)\n       - \\( D_4 = D_3 + D_1 = 1 + 0 = 1 \\) (odd)\n       - \\( D_5 = D_4 + D_2 = 1 + 1 = 2 \\) (even)\n       - \\( D_6 = D_5 + D_3 = 2 + 1 = 3 \\) (odd)\n       - \\( D_7 = D_6 + D_4 = 3 + 1 = 4 \\) (even)\n       - \\( D_8 = D_7 + D_5 = 4 + 2 = 6 \\) (even)\n       - \\( D_9 = D_8 + D_6 = 6 + 3 = 9 \\) (odd)\n  4. **Pattern Recognition**:\n     - The sequence alternates between odd and even values. Specifically, the pattern is \\( (O, E, O) \\).\n  5. **2021, 2022, 2023 Calculation**:\n     - Since the pattern \\( (O, E, O) \\) repeats every 3 terms, we can determine the parities of \\( D_{2021} \\), \\( D_{2022} \\), and \\( D_{2023} \\) by the position of these terms in the pattern.\n     - \\( 2021 \\mod 3 = 2 \\) (even)\n     - \\( 2022 \\mod 3 = 0 \\) (even)\n     - \\( 2023 \\mod 3 = 1 \\) (odd)\n  Thus, the parities are \\( (E, O, E) \\).\n  -/\n  -- Simplify the initial conditions and sequence definition\n  simp_all only [zero_add, one_add_one_eq_two]\n  -- Use the sequence definition to derive the parities of the terms\n  have := h₃ 2021 (by norm_num)\n  have := h₃ 2022 (by norm_num)\n  have := h₃ 2023 (by norm_num)\n  -- Use Aesop to solve the parity problem\n  aesop\n```"
     # Combine them into lists to match the function signatures
-    prompts = [prompt,prompt]
-    completions = [completion,completion]
 
+    prompt2='Complete the following Lean 4 code with explanatory comments preceding each line of code:\n\n```lean4\nimport Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- Suppose $a, b, c$ are the sides of a triangle. Prove that \n\n$a^2(b+c-a)+b^2(c+a-b)+c^2(a+b-c)\\le{3abc}.$-/\ntheorem imo_1964_p2 (a b c : ℝ) (h₀ : 0 < a ∧ 0 < b ∧ 0 < c) (h₁ : c < a + b) (h₂ : b < a + c)\n    (h₃ : a < b + c) :\n    a ^ 2 * (b + c - a) + b ^ 2 * (c + a - b) + c ^ 2 * (a + b - c) ≤ 3 * a * b * c := by\n'
+    completion2='  /-\n  To prove the inequality \\(a^2(b+c-a)+b^2(c+a-b)+c^2(a+b-c) \\leq 3abc\\) for the sides \\(a, b, c\\) of a triangle, we start by noting that the square of any real number is non-negative. Specifically, we consider the squares of the differences \\(a - b\\), \\(b - c\\), and \\(c - a\\). These squares are non-negative, and by summing them, we can derive the desired inequality.\n  1. The square of \\(a - b\\) is non-negative: \\((a - b)^2 \\geq 0\\).\n  2. The square of \\(b - c\\) is non-negative: \\((b - c)^2 \\geq 0\\).\n  3. The square of \\(c - a\\) is non-negative: \\((c - a)^2 \\geq 0\\).\n  By summing these inequalities and expanding the squares, we can derive the inequality \\(a^2(b+c-a) + b^2(c+a-b) + c^2(a+b-c) \\leq 3abc\\). This approach leverages the properties of non-negative numbers and the structure of the triangle inequality to establish the result.\n  -/\n  -- We start by noting that the square of any real number is non-negative.\n  have h₄ := pow_two_nonneg (a - b) -- (a - b)^2 ≥ 0\n  have h₅ := pow_two_nonneg (b - c) -- (b - c)^2 ≥ 0\n  have h₆ := pow_two_nonneg (c - a) -- (c - a)^2 ≥ 0\n  -- By summing these inequalities and expanding the squares, we derive the desired inequality.\n  nlinarith\n```'
+
+    prompt3='Complete the following Lean 4 code with explanatory comments preceding each line of code:\n\n```lean4\nimport Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- Given $2^a = 32$ and $a^b = 125$ find $b^a$. Show that it is 243.-/\ntheorem mathd_algebra_756 (a b : ℝ) (h₀ : (2 : ℝ) ^ a = 32) (h₁ : a ^ b = 125) : b ^ a = 243 := by\n'
+
+    completion3='  /-\n  Given \\(2^a = 32\\) and \\(a^b = 125\\), we need to find \\(b^a\\). We start by solving for \\(a\\) using the equation \\(2^a = 32\\). Taking the logarithm base 2 of both sides, we get \\(a = \\log_2 32\\). Since \\(32 = 2^5\\), we have \\(a = 5\\).\n  Next, we substitute \\(a = 5\\) into the equation \\(a^b = 125\\), yielding \\(5^b = 125\\). Taking the logarithm base 5 of both sides, we get \\(b = \\log_5 125\\). Since \\(125 = 5^3\\), we have \\(b = 3\\).\n  Finally, we need to find \\(b^a\\). Substituting \\(a = 5\\) and \\(b = 3\\), we get \\(b^a = 3^5\\). Calculating \\(3^5\\), we find \\(3^5 = 243\\).\n  -/\n  -- We start by solving for a using the equation 2^a = 32.\n  have : a = 5 := by\n    -- Taking the logarithm base 2 of both sides, we get a = log_2 32.\n    -- Since 32 = 2^5, we have a = 5.\n    apply_fun fun x : ℝ => logb 2 x at h₀\n    norm_num at h₀\n    linarith\n  -- Next, we substitute a = 5 into the equation a^b = 125.\n  subst this\n  -- Taking the logarithm base 5 of both sides, we get b = log_5 125.\n  -- Since 125 = 5^3, we have b = 3.\n  have : b = 3 := by\n    apply_fun fun x : ℝ => logb 5 x at h₁\n    norm_num at h₁\n    linarith\n  -- Finally, we need to find b^a. Substituting a = 5 and b = 3, we get b^a = 3^5.\n  subst this\n  -- Calculating 3^5, we find 3^5 = 243.\n  norm_num\n```'
+
+
+    prompts = [prompt1,prompt2,prompt3]
+    completions = [completion1,completion2,completion3]
+    texts = [p + c for p, c in zip(prompts, completions)]
+    extracted_code=[extract_code(result) for result in texts]
+    print("extracted_code",extracted_code)
     # Instead of calling Lean4ServerScheduler, we define a static example of the outputs_list
     # with some errors (as you said you'd do for your test).
-    outputs_list = [
-        {"tactics":
-             [{"usedConstants": ["Decidable.em", "Nat", "instDecidableEqNat", "Eq"],
-               "tactic":
-                   "cases Decidable.em (m = n) with\n  --m = n ∨ ¬m = n\n| inl heq => rw [heq]; apply Or.inl; exact Nat.sub_self\n| inr hne => apply Or.inr;\n  /-example (m n : Nat) : m - n = 0 ∨ m ≠ n := by\n    cases Decidable.em (m=n) with --m = n ∨ ¬m = n\n      |inr he => rw [heq]; apply Or.inl; exact Nat.sub_self\n      |inr hne => apply Or.inr;\n  -/",
-               "proofState": 0,
-               "pos": {"line": 2, "column": 2},
-               "goals": "m n : Nat\n⊢ m - n = 0 ∨ m ≠ n",
-               "endPos": {"line": 4, "column": 29}},
-              {"usedConstants": [],
-               "tactic":
-                   "cases Decidable.em (m = n) with\n  --m = n ∨ ¬m = n\n| inl heq => rw [heq]; apply Or.inl; exact Nat.sub_self\n| inr hne => apply Or.inr;\n  /-example (m n : Nat) : m - n = 0 ∨ m ≠ n := by\n    cases Decidable.em (m=n) with --m = n ∨ ¬m = n\n      |inr he => rw [heq]; apply Or.inl; exact Nat.sub_self\n      |inr hne => apply Or.inr;\n  -/",
-               "proofState": 1,
-               "pos": {"line": 2, "column": 2},
-               "goals": "m n : Nat\nx✝ : m = n ∨ ¬m = n\n⊢ m - n = 0 ∨ m ≠ n",
-               "endPos": {"line": 4, "column": 29}},
-              {"usedConstants":
-                   ["Eq.mpr",
-                    "congrArg",
-                    "HSub.hSub",
-                    "id",
-                    "instSubNat",
-                    "Ne",
-                    "instOfNatNat",
-                    "instHSub",
-                    "Nat",
-                    "Or",
-                    "OfNat.ofNat",
-                    "Eq"],
-               "tactic": "rw [heq]",
-               "proofState": 2,
-               "pos": {"line": 3, "column": 16},
-               "goals": "case inl\nm n : Nat\nheq : m = n\n⊢ m - n = 0 ∨ m ≠ n",
-               "endPos": {"line": 3, "column": 24}},
-              {"usedConstants": ["Or.inl"],
-               "tactic": "apply Or.inl",
-               "proofState": 3,
-               "pos": {"line": 3, "column": 26},
-               "goals": "case inl\nm n : Nat\nheq : m = n\n⊢ n - n = 0 ∨ n ≠ n",
-               "endPos": {"line": 3, "column": 38}},
-              {"usedConstants": [],
-               "tactic": "exact Nat.sub_self",
-               "proofState": 4,
-               "pos": {"line": 3, "column": 40},
-               "goals": "case inl.h\nm n : Nat\nheq : m = n\n⊢ n - n = 0",
-               "endPos": {"line": 3, "column": 58}},
-              {"usedConstants": ["Or.inr"],
-               "tactic": "apply Or.inr",
-               "proofState": 5,
-               "pos": {"line": 4, "column": 16},
-               "goals": "case inr\nm n : Nat\nhne : ¬m = n\n⊢ m - n = 0 ∨ m ≠ n",
-               "endPos": {"line": 4, "column": 28}}],
-         "messages":
-             [{"severity": "error",
-               "pos": {"line": 3, "column": 40},
-               "endPos": {"line": 3, "column": 58},
-               "data":
-                   "type mismatch\n  Nat.sub_self\nhas type\n  ∀ (n : Nat), n - n = 0 : Prop\nbut is expected to have type\n  n - n = 0 : Prop"},
-              {"severity": "error",
-               "pos": {"line": 4, "column": 13},
-               "endPos": {"line": 4, "column": 29},
-               "data": "unsolved goals\ncase inr.h\nm n : Nat\nhne : ¬m = n\n⊢ m ≠ n"}],
-         "env": 0}, {"tactics":
-             [{"usedConstants": ["Decidable.em", "Nat", "instDecidableEqNat", "Eq"],
-               "tactic":
-                   "cases Decidable.em (m = n) with\n  --m = n ∨ ¬m = n\n| inl heq => rw [heq]; apply Or.inl; exact Nat.sub_self\n| inr hne => apply Or.inr;\n  /-example (m n : Nat) : m - n = 0 ∨ m ≠ n := by\n    cases Decidable.em (m=n) with --m = n ∨ ¬m = n\n      |inr he => rw [heq]; apply Or.inl; exact Nat.sub_self\n      |inr hne => apply Or.inr;\n  -/",
-               "proofState": 0,
-               "pos": {"line": 2, "column": 2},
-               "goals": "m n : Nat\n⊢ m - n = 0 ∨ m ≠ n",
-               "endPos": {"line": 4, "column": 29}},
-              {"usedConstants": [],
-               "tactic":
-                   "cases Decidable.em (m = n) with\n  --m = n ∨ ¬m = n\n| inl heq => rw [heq]; apply Or.inl; exact Nat.sub_self\n| inr hne => apply Or.inr;\n  /-example (m n : Nat) : m - n = 0 ∨ m ≠ n := by\n    cases Decidable.em (m=n) with --m = n ∨ ¬m = n\n      |inr he => rw [heq]; apply Or.inl; exact Nat.sub_self\n      |inr hne => apply Or.inr;\n  -/",
-               "proofState": 1,
-               "pos": {"line": 2, "column": 2},
-               "goals": "m n : Nat\nx✝ : m = n ∨ ¬m = n\n⊢ m - n = 0 ∨ m ≠ n",
-               "endPos": {"line": 4, "column": 29}},
-              {"usedConstants":
-                   ["Eq.mpr",
-                    "congrArg",
-                    "HSub.hSub",
-                    "id",
-                    "instSubNat",
-                    "Ne",
-                    "instOfNatNat",
-                    "instHSub",
-                    "Nat",
-                    "Or",
-                    "OfNat.ofNat",
-                    "Eq"],
-               "tactic": "rw [heq]",
-               "proofState": 2,
-               "pos": {"line": 3, "column": 16},
-               "goals": "case inl\nm n : Nat\nheq : m = n\n⊢ m - n = 0 ∨ m ≠ n",
-               "endPos": {"line": 3, "column": 24}},
-              {"usedConstants": ["Or.inl"],
-               "tactic": "apply Or.inl",
-               "proofState": 3,
-               "pos": {"line": 3, "column": 26},
-               "goals": "case inl\nm n : Nat\nheq : m = n\n⊢ n - n = 0 ∨ n ≠ n",
-               "endPos": {"line": 3, "column": 38}},
-              {"usedConstants": [],
-               "tactic": "exact Nat.sub_self",
-               "proofState": 4,
-               "pos": {"line": 3, "column": 40},
-               "goals": "case inl.h\nm n : Nat\nheq : m = n\n⊢ n - n = 0",
-               "endPos": {"line": 3, "column": 58}},
-              {"usedConstants": ["Or.inr"],
-               "tactic": "apply Or.inr",
-               "proofState": 5,
-               "pos": {"line": 4, "column": 16},
-               "goals": "case inr\nm n : Nat\nhne : ¬m = n\n⊢ m - n = 0 ∨ m ≠ n",
-               "endPos": {"line": 4, "column": 28}}],
-         "messages":
-             [{"severity": "error",
-               "pos": {"line": 3, "column": 40},
-               "endPos": {"line": 3, "column": 58},
-               "data":
-                   "type mismatch\n  Nat.sub_self\nhas type\n  ∀ (n : Nat), n - n = 0 : Prop\nbut is expected to have type\n  n - n = 0 : Prop"},
-              {"severity": "error",
-               "pos": {"line": 4, "column": 13},
-               "endPos": {"line": 4, "column": 29},
-               "data": "unsolved goals\ncase inr.h\nm n : Nat\nhne : ¬m = n\n⊢ m ≠ n"}],
-         "env": 0}
+    outputs_list = [  {'sorries': [], 'tactics': [{'tactic': 'simp_all only [zero_add, one_add_one_eq_two]\n  -- Use the sequence definition to derive the parities of the terms', 'proofState': 0, 'pos': {'line': 40, 'column': 2}, 'goals': 'd : ℕ → ℕ\nh₀ : d 0 = 0\nh₁ : d 1 = 0\nh₂ : d 2 = 1\nh₃ : ∀ n ≥ 3, d n = d (n - 1) + d (n - 3)\n⊢ Even (d 2021) ∧ Odd (d 2022) ∧ Even (d 2023)', 'endPos': {'line': 40, 'column': 46}}], 'errors': [{'severity': 'error', 'pos': {'line': 40, 'column': 2}, 'endPos': {'line': 40, 'column': 46}, 'data': 'simp_all made no progress'}], 'warnings': [], 'infos': [], 'system_messages': '', 'system_errors': None, 'ast': {}, 'verified_code': "import Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- A sequence of numbers is defined by $D_0=0,D_1=0,D_2=1$ and $D_n=D_{n-1}+D_{n-3}$ for $n\\ge 3$. What are the parities (evenness or oddness) of the triple of numbers $(D_{2021},D_{2022},D_{2023})$, where $E$ denotes even and $O$ denotes odd?\n\n$\\textbf{(A) }(O,E,O) \\qquad \\textbf{(B) }(E,E,O) \\qquad \\textbf{(C) }(E,O,E) \\qquad \\textbf{(D) }(O,O,E) \\qquad \\textbf{(E) }(O,O,O)$ Show that it is \\textbf{(C) }(E,O,E).-/\ntheorem amc12a_2021_p8 (d : ℕ → ℕ) (h₀ : d 0 = 0) (h₁ : d 1 = 0) (h₂ : d 2 = 1)\n    (h₃ : ∀ n ≥ 3, d n = d (n - 1) + d (n - 3)) : Even (d 2021) ∧ Odd (d 2022) ∧ Even (d 2023) := by\n  /-\n  To solve the problem, we need to determine the parities of the numbers \\( D_{2021} \\), \\( D_{2022} \\), and \\( D_{2023} \\) in the sequence defined by \\( D_0 = 0 \\), \\( D_1 = 0 \\), \\( D_2 = 1 \\), and \\( D_n = D_{n-1} + D_{n-3} \\) for \\( n \\geq 3 \\).\n  1. **Initial Values**:\n     - \\( D_0 = 0 \\) (even)\n     - \\( D_1 = 0 \\) (even)\n     - \\( D_2 = 1 \\) (odd)\n  2. **Sequence Calculation**:\n     - For \\( n \\geq 3 \\), \\( D_n = D_{n-1} + D_{n-3} \\).\n  3. **Parity Patterns**:\n     - We observe the sequence's parity by calculating the first few terms:\n       - \\( D_3 = D_2 + D_0 = 1 + 0 = 1 \\) (odd)\n       - \\( D_4 = D_3 + D_1 = 1 + 0 = 1 \\) (odd)\n       - \\( D_5 = D_4 + D_2 = 1 + 1 = 2 \\) (even)\n       - \\( D_6 = D_5 + D_3 = 2 + 1 = 3 \\) (odd)\n       - \\( D_7 = D_6 + D_4 = 3 + 1 = 4 \\) (even)\n       - \\( D_8 = D_7 + D_5 = 4 + 2 = 6 \\) (even)\n       - \\( D_9 = D_8 + D_6 = 6 + 3 = 9 \\) (odd)\n  4. **Pattern Recognition**:\n     - The sequence alternates between odd and even values. Specifically, the pattern is \\( (O, E, O) \\).\n  5. **2021, 2022, 2023 Calculation**:\n     - Since the pattern \\( (O, E, O) \\) repeats every 3 terms, we can determine the parities of \\( D_{2021} \\), \\( D_{2022} \\), and \\( D_{2023} \\) by the position of these terms in the pattern.\n     - \\( 2021 \\mod 3 = 2 \\) (even)\n     - \\( 2022 \\mod 3 = 0 \\) (even)\n     - \\( 2023 \\mod 3 = 1 \\) (odd)\n  Thus, the parities are \\( (E, O, E) \\).\n  -/\n  -- Simplify the initial conditions and sequence definition\n  simp_all only [zero_add, one_add_one_eq_two]\n  -- Use the sequence definition to derive the parities of the terms\n  have := h₃ 2021 (by norm_num)\n  have := h₃ 2022 (by norm_num)\n  have := h₃ 2023 (by norm_num)\n  -- Use Aesop to solve the parity problem\n  aesop", 'pass': False, 'complete': False, 'verify_time': 6.8995277881622314}
+,
+                     {'sorries': [], 'tactics': [{'tactic': 'have h₄ :=\n  pow_two_nonneg\n    (a - b)\n      -- (a - b)^2 ≥ 0', 'proofState': 0, 'pos': {'line': 22, 'column': 2}, 'goals': 'a b c : ℝ\nh₀ : 0 < a ∧ 0 < b ∧ 0 < c\nh₁ : c < a + b\nh₂ : b < a + c\nh₃ : a < b + c\n⊢ a ^ 2 * (b + c - a) + b ^ 2 * (c + a - b) + c ^ 2 * (a + b - c) ≤ 3 * a * b * c', 'endPos': {'line': 22, 'column': 35}}, {'tactic': 'have h₅ :=\n  pow_two_nonneg\n    (b - c)\n      -- (b - c)^2 ≥ 0', 'proofState': 1, 'pos': {'line': 23, 'column': 2}, 'goals': 'a b c : ℝ\nh₀ : 0 < a ∧ 0 < b ∧ 0 < c\nh₁ : c < a + b\nh₂ : b < a + c\nh₃ : a < b + c\nh₄ : 0 ≤ (a - b) ^ 2\n⊢ a ^ 2 * (b + c - a) + b ^ 2 * (c + a - b) + c ^ 2 * (a + b - c) ≤ 3 * a * b * c', 'endPos': {'line': 23, 'column': 35}}, {'tactic': 'have h₆ :=\n  pow_two_nonneg\n    (c - a)\n      -- (c - a)^2 ≥ 0\n        -- By summing these inequalities and expanding the squares, we derive the desired inequality.', 'proofState': 2, 'pos': {'line': 24, 'column': 2}, 'goals': 'a b c : ℝ\nh₀ : 0 < a ∧ 0 < b ∧ 0 < c\nh₁ : c < a + b\nh₂ : b < a + c\nh₃ : a < b + c\nh₄ : 0 ≤ (a - b) ^ 2\nh₅ : 0 ≤ (b - c) ^ 2\n⊢ a ^ 2 * (b + c - a) + b ^ 2 * (c + a - b) + c ^ 2 * (a + b - c) ≤ 3 * a * b * c', 'endPos': {'line': 24, 'column': 35}}, {'tactic': 'nlinarith', 'proofState': 3, 'pos': {'line': 26, 'column': 2}, 'goals': 'a b c : ℝ\nh₀ : 0 < a ∧ 0 < b ∧ 0 < c\nh₁ : c < a + b\nh₂ : b < a + c\nh₃ : a < b + c\nh₄ : 0 ≤ (a - b) ^ 2\nh₅ : 0 ≤ (b - c) ^ 2\nh₆ : 0 ≤ (c - a) ^ 2\n⊢ a ^ 2 * (b + c - a) + b ^ 2 * (c + a - b) + c ^ 2 * (a + b - c) ≤ 3 * a * b * c', 'endPos': {'line': 26, 'column': 11}}], 'errors': [], 'warnings': [{'severity': 'warning', 'pos': {'line': 11, 'column': 33}, 'endPos': {'line': 11, 'column': 35}, 'data': 'unused variable `h₀`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`'}, {'severity': 'warning', 'pos': {'line': 22, 'column': 7}, 'endPos': {'line': 22, 'column': 9}, 'data': 'unused variable `h₄`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`'}, {'severity': 'warning', 'pos': {'line': 23, 'column': 7}, 'endPos': {'line': 23, 'column': 9}, 'data': 'unused variable `h₅`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`'}, {'severity': 'warning', 'pos': {'line': 24, 'column': 7}, 'endPos': {'line': 24, 'column': 9}, 'data': 'unused variable `h₆`\nnote: this linter can be disabled with `set_option linter.unusedVariables false`'}], 'infos': [], 'system_messages': '', 'system_errors': None, 'ast': {}, 'verified_code': 'import Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- Suppose $a, b, c$ are the sides of a triangle. Prove that \n\n$a^2(b+c-a)+b^2(c+a-b)+c^2(a+b-c)\\le{3abc}.$-/\ntheorem imo_1964_p2 (a b c : ℝ) (h₀ : 0 < a ∧ 0 < b ∧ 0 < c) (h₁ : c < a + b) (h₂ : b < a + c)\n    (h₃ : a < b + c) :\n    a ^ 2 * (b + c - a) + b ^ 2 * (c + a - b) + c ^ 2 * (a + b - c) ≤ 3 * a * b * c := by\n  /-\n  To prove the inequality \\(a^2(b+c-a)+b^2(c+a-b)+c^2(a+b-c) \\leq 3abc\\) for the sides \\(a, b, c\\) of a triangle, we start by noting that the square of any real number is non-negative. Specifically, we consider the squares of the differences \\(a - b\\), \\(b - c\\), and \\(c - a\\). These squares are non-negative, and by summing them, we can derive the desired inequality.\n  1. The square of \\(a - b\\) is non-negative: \\((a - b)^2 \\geq 0\\).\n  2. The square of \\(b - c\\) is non-negative: \\((b - c)^2 \\geq 0\\).\n  3. The square of \\(c - a\\) is non-negative: \\((c - a)^2 \\geq 0\\).\n  By summing these inequalities and expanding the squares, we can derive the inequality \\(a^2(b+c-a) + b^2(c+a-b) + c^2(a+b-c) \\leq 3abc\\). This approach leverages the properties of non-negative numbers and the structure of the triangle inequality to establish the result.\n  -/\n  -- We start by noting that the square of any real number is non-negative.\n  have h₄ := pow_two_nonneg (a - b) -- (a - b)^2 ≥ 0\n  have h₅ := pow_two_nonneg (b - c) -- (b - c)^2 ≥ 0\n  have h₆ := pow_two_nonneg (c - a) -- (c - a)^2 ≥ 0\n  -- By summing these inequalities and expanding the squares, we derive the desired inequality.\n  nlinarith', 'pass': True, 'complete': True, 'verify_time': 8.282229900360107},
+                      {'sorries': [], 'tactics': [{
+                                                      'tactic': 'have : a = 5 := by\n  -- Taking the logarithm base 2 of both sides, we get a = log_2 32.\n      -- Since 32 = 2^5, we have a = 5.\n  apply_fun fun x : ℝ => logb 2 x at h₀\n  norm_num at h₀\n  linarith\n    -- Next, we substitute a = 5 into the equation a^b = 125.',
+                                                      'proofState': 0, 'pos': {'line': 16, 'column': 2},
+                                                      'goals': 'a b : ℝ h₀ : 2 ^ a = 32 h₁ : a ^ b = 125 ⊢ b ^ a = 243',
+                                                      'endPos': {'line': 21, 'column': 12}},
+                                                  {'tactic': 'apply_fun fun x : ℝ => logb 2 x at h₀', 'proofState': 1,
+                                                   'pos': {'line': 19, 'column': 4},
+                                                   'goals': 'a b : ℝ h₀ : 2 ^ a = 32 h₁ : a ^ b = 125 ⊢ a = 5',
+                                                   'endPos': {'line': 19, 'column': 41}},
+                                                  {'tactic': 'norm_num at h₀', 'proofState': 2,
+                                                   'pos': {'line': 20, 'column': 4},
+                                                   'goals': 'a b : ℝ h₁ : a ^ b = 125 h₀ : logb 2 (2 ^ a) = logb 2 32 ⊢ a = 5',
+                                                   'endPos': {'line': 20, 'column': 18}}, {
+                                                      'tactic': 'linarith\n  -- Next, we substitute a = 5 into the equation a^b = 125.',
+                                                      'proofState': 3, 'pos': {'line': 21, 'column': 4},
+                                                      'goals': 'a b : ℝ h₁ : a ^ b = 125 h₀ : a = logb 2 32 ⊢ a = 5',
+                                                      'endPos': {'line': 21, 'column': 12}},
+                                                  {'tactic': 'subst this', 'proofState': 4,
+                                                   'pos': {'line': 23, 'column': 2},
+                                                   'goals': 'a b : ℝ h₀ : 2 ^ a = 32 h₁ : a ^ b = 125 this : a = 5 ⊢ b ^ a = 243',
+                                                   'endPos': {'line': 23, 'column': 12}}, {
+                                                      'tactic': 'have : b = 3 := by\n  apply_fun fun x : ℝ => logb 5 x at h₁\n  norm_num at h₁\n  linarith\n    -- Finally, we need to find b^a. Substituting a = 5 and b = 3, we get b^a = 3^5.',
+                                                      'proofState': 5, 'pos': {'line': 26, 'column': 2},
+                                                      'goals': 'b : ℝ h₀ : 2 ^ 5 = 32 h₁ : 5 ^ b = 125 ⊢ b ^ 5 = 243',
+                                                      'endPos': {'line': 29, 'column': 12}},
+                                                  {'tactic': 'apply_fun fun x : ℝ => logb 5 x at h₁', 'proofState': 6,
+                                                   'pos': {'line': 27, 'column': 4},
+                                                   'goals': 'b : ℝ h₀ : 2 ^ 5 = 32 h₁ : 5 ^ b = 125 ⊢ b = 3',
+                                                   'endPos': {'line': 27, 'column': 41}},
+                                                  {'tactic': 'norm_num at h₁', 'proofState': 7,
+                                                   'pos': {'line': 28, 'column': 4},
+                                                   'goals': 'b : ℝ h₀ : 2 ^ 5 = 32 h₁ : logb 5 (5 ^ b) = logb 5 125 ⊢ b = 3',
+                                                   'endPos': {'line': 28, 'column': 18}}, {
+                                                      'tactic': 'linarith\n  -- Finally, we need to find b^a. Substituting a = 5 and b = 3, we get b^a = 3^5.',
+                                                      'proofState': 8, 'pos': {'line': 29, 'column': 4},
+                                                      'goals': 'b : ℝ h₀ : 2 ^ 5 = 32 h₁ : b = logb 5 125 ⊢ b = 3',
+                                                      'endPos': {'line': 29, 'column': 12}},
+                                                  {'tactic': 'subst this', 'proofState': 9,
+                                                   'pos': {'line': 31, 'column': 2},
+                                                   'goals': 'b : ℝ h₀ : 2 ^ 5 = 32 h₁ : 5 ^ b = 125 this : b = 3 ⊢ b ^ 5 = 243',
+                                                   'endPos': {'line': 31, 'column': 12}},
+                                                  {'tactic': 'norm_num', 'proofState': 10,
+                                                   'pos': {'line': 33, 'column': 2},
+                                                   'goals': 'h₀ : 2 ^ 5 = 32 h₁ : 5 ^ 3 = 125 ⊢ 3 ^ 5 = 243',
+                                                   'endPos': {'line': 33, 'column': 10}}], 'errors': [
+                          {'severity': 'error', 'pos': {'line': 21, 'column': 4}, 'endPos': {'line': 21, 'column': 12},
+                           'data': 'linarith failed to find a contradiction\ncase h1.h\na b : ℝ\nh₁ : a ^ b = 125\nh₀ : a = logb 2 32\na✝ : a < 5\n⊢ False\nfailed'},
+                          {'severity': 'error', 'pos': {'line': 29, 'column': 4}, 'endPos': {'line': 29, 'column': 12},
+                           'data': 'linarith failed to find a contradiction\ncase h1.h\nb : ℝ\nh₀ : 2 ^ 5 = 32\nh₁ : b = logb 5 125\na✝ : b < 3\n⊢ False\nfailed'}],
+                       'warnings': [], 'infos': [], 'system_messages': '', 'system_errors': None, 'ast': {},
+                       'verified_code': 'import Mathlib\nimport Aesop\n\nset_option maxHeartbeats 0\n\nopen BigOperators Real Nat Topology Rat\n\n/-- Given $2^a = 32$ and $a^b = 125$ find $b^a$. Show that it is 243.-/\ntheorem mathd_algebra_756 (a b : ℝ) (h₀ : (2 : ℝ) ^ a = 32) (h₁ : a ^ b = 125) : b ^ a = 243 := by\n  /-\n  Given \\(2^a = 32\\) and \\(a^b = 125\\), we need to find \\(b^a\\). We start by solving for \\(a\\) using the equation \\(2^a = 32\\). Taking the logarithm base 2 of both sides, we get \\(a = \\log_2 32\\). Since \\(32 = 2^5\\), we have \\(a = 5\\).\n  Next, we substitute \\(a = 5\\) into the equation \\(a^b = 125\\), yielding \\(5^b = 125\\). Taking the logarithm base 5 of both sides, we get \\(b = \\log_5 125\\). Since \\(125 = 5^3\\), we have \\(b = 3\\).\n  Finally, we need to find \\(b^a\\). Substituting \\(a = 5\\) and \\(b = 3\\), we get \\(b^a = 3^5\\). Calculating \\(3^5\\), we find \\(3^5 = 243\\).\n  -/\n  -- We start by solving for a using the equation 2^a = 32.\n  have : a = 5 := by\n    -- Taking the logarithm base 2 of both sides, we get a = log_2 32.\n    -- Since 32 = 2^5, we have a = 5.\n    apply_fun fun x : ℝ => logb 2 x at h₀\n    norm_num at h₀\n    linarith\n  -- Next, we substitute a = 5 into the equation a^b = 125.\n  subst this\n  -- Taking the logarithm base 5 of both sides, we get b = log_5 125.\n  -- Since 125 = 5^3, we have b = 3.\n  have : b = 3 := by\n    apply_fun fun x : ℝ => logb 5 x at h₁\n    norm_num at h₁\n    linarith\n  -- Finally, we need to find b^a. Substituting a = 5 and b = 3, we get b^a = 3^5.\n  subst this\n  -- Calculating 3^5, we find 3^5 = 243.\n  norm_num',
+                       'pass': False, 'complete': False, 'verify_time': 4.820402145385742}
+
     ]
 
     # In a real scenario, you'd do something like:
@@ -973,39 +836,72 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
 
     # Compute token-level scores
-    all_token_scores, all_token_texts = compute_tactic_scores_for_output(
-        prompts, completions, outputs_list, tokenizer
+    all_token_scores, all_token_texts,binary_pass_score = compute_tactic_scores_for_output_deepseek(
+        prompts, completions, outputs_list, extracted_code, tokenizer
     )
 
 
     #tactic-level scores
-    all_tactic_scores, all_tactic_texts=compute_tactic_scores_with_parents_v1(
-        prompts, completions, outputs_list, tokenizer
+    all_tactic_scores, all_tactic_texts, binary=compute_token_level_advantages(
+        prompts, completions, outputs_list, tokenizer, extracted_code,"advantage", 0.9
     )
 
     # Convert to a padded tensor if desired
     padded_token_scores = list_of_lists_to_padded_tensor(all_token_scores, padding_value=0)
-    padded_tactic_scores = list_of_lists_to_padded_tensor(all_tactic_scores, padding_value=0)
+   # padded_tactic_scores = list_of_lists_to_padded_tensor(all_tactic_scores, padding_value=0)
     # Print out a summary
+
     for i, (scores, texts) in enumerate(zip(all_token_scores, all_token_texts)):
-        #print(f"--- Completion #{i} ---")
-        for token_str, sc in zip(texts, scores):
-            print(f"Token '{token_str}' => Score {sc:.2f}")
+        print(f"--- Completion #{i} ---")
+        if i >= 2:
+            for token_str, sc in zip(texts, scores):
+                print(f"Token '{token_str}' => Score {sc:.2f}")
 
         # Or just look at the padded row
-        #print("Padded row for this completion =>", padded_token_scores[i].tolist())
-       # print()
+       # print("Padded row for this completion =>", padded_token_scores[i].tolist())
+    print(binary_pass_score)
 
 
     for i, (scores, texts) in enumerate(zip(all_tactic_scores, all_tactic_texts)):
-        #print(f"--- Completion #{i} ---")
-        for token_str, sc in zip(texts, scores):
-            print(f"Tactic_Token '{token_str}' => Score {sc:.2f}")
+        print(f"--- Completion #{i} ---")
+        if i>=2:
+            for token_str, sc in zip(texts, scores):
+                print(f"Tactic_Token '{token_str}' => Score {sc:.2f}")
 
         # Or just look at the padded row
         #print("Tactic_Padded row for this completion =>", padded_tactic_scores[i].tolist())
-        print()
+        #print()
 
+
+
+    def compare_token_scores(scores1, scores2, tol=1e-6):
+        """
+        Compare two lists of token scores (lists of lists).
+        For each sample, compare lengths and then each token's score.
+        If any difference exceeds the tolerance, print details.
+
+        Returns True if they are the same, False otherwise.
+        """
+        if len(scores1) != len(scores2):
+            print(f"Different number of samples: {len(scores1)} vs {len(scores2)}")
+            return False
+        all_same = True
+        for i, (s1, s2) in enumerate(zip(scores1, scores2)):
+            if len(s1) != len(s2):
+                print(f"Sample {i}: different number of tokens: {len(s1)} vs {len(s2)}")
+                all_same = False
+                continue
+            for j, (score1, score2) in enumerate(zip(s1, s2)):
+                if abs(score1 - score2) > tol:
+                    print(f"Sample {i}, token {j}: score1 = {score1}, score2 = {score2}")
+                    all_same = False
+        return all_same
+
+    # Then, after computing all_token_scores and all_tactic_scores:
+    if compare_token_scores(all_token_scores, all_tactic_scores):
+        print("all_token_scores and all_tactic_scores are the same.")
+    else:
+        print("There are differences between all_token_scores and all_tactic_scores.")
 
     #print("padded_scores",padded_token_scores)
     values=torch.zeros_like(padded_token_scores)

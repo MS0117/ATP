@@ -25,7 +25,7 @@ DEFAULT_LEAN_WORKSPACE = '/userhomes/minsu/symr/mathlib4'
 
 
 def verify_lean4_file(code, lake_path=DEFAULT_LAKE_PATH, lean_workspace=DEFAULT_LEAN_WORKSPACE, last_env=None,
-                      verbose=False, timeout=300, allTactics=False, ast=False, premises=False, tactics=False):
+                      verbose=False, timeout=300, allTactics=True, ast=False, premises=False, tactics=False):
     command = dict(cmd=code, allTactics=allTactics, ast=ast, tactics=tactics, premises=premises)
     if last_env is not None:
         command.update(env=last_env)
@@ -101,7 +101,7 @@ class Lean4ServerProcess(mp.Process):
                     task = dict(code=task)
                 if 'timeout' not in task:
                     task['timeout'] = self.timeout
-                result = verify_lean4_file(**task)
+                result = verify_lean4_file(**task,allTactics=self.extra_args.get('allTactics', False))
                 if len(result['system_messages']) > 0:
                     retry_start_time = time.time()
                     while ('lean::exception: failed to create thread' in result['system_messages'] or
@@ -117,19 +117,20 @@ class Lean4ServerProcess(mp.Process):
 
 
 class Lean4ServerScheduler(ProcessScheduler):
-    def __init__(self, max_concurrent_requests=4, timeout=300, memory_limit=10, name='verifier'):
+    def __init__(self, max_concurrent_requests=4, timeout=300, memory_limit=10, name='verifier',extra_args=None):
         super().__init__(batch_size=1, name=name)
 
+        process_extra_args = AttrDict(timeout=timeout, memory_limit=memory_limit)
+        # If extra_args is provided, update process_extra_args with its values
+        if extra_args:
+            process_extra_args.update(extra_args)
         self.processes = [
             Lean4ServerProcess(
                 idx=idx,
                 task_queue=self.task_queue,
                 request_statuses=self.request_statuses,
                 lock=self.lock,
-                extra_args=AttrDict(
-                    timeout=timeout,
-                    memory_limit=memory_limit,
-                )
+                extra_args=process_extra_args
             )
             for idx in range(max_concurrent_requests)
         ]

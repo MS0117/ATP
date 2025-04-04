@@ -4,6 +4,8 @@ import time
 import torch
 import logging
 import datasets
+import wandb
+import signal
 import transformers
 from typing import Dict, List
 from accelerate import PartialState
@@ -17,7 +19,7 @@ from transformers import (
 
 )
 
-from modules import CUSTOMTrainer
+from modules import CUSTOMTrainer,lean4_value_reward,lean4_grpo_reward
 from utils import (
     DataArguments,
     H4ArgumentParser,
@@ -31,14 +33,24 @@ from utils import (
     get_quantization_config,
     get_peft_config
 )
-
 from trl import GRPOConfig,GRPOTrainer,RewardConfig,SFTConfig, SFTTrainer,PPOTrainer,PPOConfig, RewardTrainer, DataCollatorForCompletionOnlyLM
 #from src import ()
+import torch._dynamo as dynamo
+dynamo.config.cache_size_limit = 16
 
 tqdm.pandas()
 
 logger = logging.getLogger(__name__)
 START_TIME = time.strftime("%Y%m%d_%H%M%S")
+
+
+def handle_exit(signum, frame):
+    logger.info("SIGTERM received. Finishing WandB and exiting safely.")
+    sys.exit(0)
+
+
+signal.signal(signal.SIGTERM, handle_exit)
+
 
 
 def main(model_args,
@@ -67,8 +79,7 @@ def main(model_args,
         # Load tokenizer and model
 
     tokenizer = AutoTokenizer.from_pretrained(
-        model_args.model_name_or_path, trust_remote_code=model_args.trust_remote_code, use_fast=True
-    )
+        model_args.model_name_or_path, padding_side="left"  )
     #quantization_config=get_quantization_config(model_args)
     quantization_config = get_quantization_config(model_args)
 
@@ -163,21 +174,20 @@ def main(model_args,
         trainer = CUSTOMTrainer(
             model=model,
             args=training_args,
+            processing_class=tokenizer,
             train_dataset=train_dataset,
             reward_funcs=training_args.reward_type,
             peft_config=peft_config
         )
 
     elif 'grpo' in training_type.lower():
-        def reward_len(completions, **kwargs):
-            return [-abs(20 - len(completion)) for completion in completions]
 
-        dataset = load_dataset("trl-lib/tldr", split="train")
         trainer = GRPOTrainer(
             model=model,
-            reward_funcs=reward_len,
+            processing_class=tokenizer,
+            reward_funcs=lean4_grpo_reward,
             args=training_args,
-            train_dataset=dataset,
+            train_dataset=train_dataset,
             peft_config=peft_config
         )
 
@@ -218,11 +228,13 @@ def main(model_args,
     #    trainer.model.config.save_pretrained(training_args.output_dir)
 
     # Push to hub
-    #if training_args.push_to_hub is True:
-    #    logger.info("Pushing to hub...")
-    #    trainer.push_to_hub(**kwargs)
+    if training_args.push_to_hub is True:
+        logger.info("Pushing to hub...")
+        trainer.push_to_hub(**kwargs)
 
     logger.info("*** Training complete! ***")
+    #wandb.finish()
+    #logger.info("WandB run finished cleanly.")
 
 
 if __name__ == "__main__":

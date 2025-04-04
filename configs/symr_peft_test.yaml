@@ -1,5 +1,5 @@
 # Model arguments
-model_name_or_path: "deepseek-ai/deepseek-coder-1.3b-base" #deepseek-ai/DeepSeek-Prover-V1.5-SFT, deepseek-ai/deepseek-coder-1.3b-base openai-community/gpt2 ContextualAI/Llama-200M
+model_name_or_path: "openai-community/gpt2" #deepseek-ai/DeepSeek-Prover-V1.5-SFT, deepseek-ai/deepseek-coder-1.3b-base openai-community/gpt2 ContextualAI/Llama-200M
 model_revision: main
 torch_dtype: bfloat16
 attn_implementation: flash_attention_2
@@ -27,9 +27,9 @@ logging_steps: 5
 logging_strategy: steps
 lr_scheduler_type: cosine
 max_steps: -1
-num_train_epochs: 3
+num_train_epochs: 1
 overwrite_output_dir: true
-per_device_train_batch_size: 4
+per_device_train_batch_size: 32
 remove_unused_columns: true
 report_to:
 - tensorboard
@@ -47,11 +47,10 @@ lora_alpha: 1
 # GRPO default setting
 reward_type: 'lean'
 beta: 0.04
-num_generations: 4
-num_iterations: 1
+num_generations: 8
+num_iterations: 4
 use_vllm: true
 vllm_gpu_memory_utilization: 0.5
-vllm_device: "cuda:0"
 loss_function: "rloo"
 token_level_kl: true
 normalize_advantage: true
@@ -60,5 +59,7 @@ cliprange: 0.2
 whiten_rewards: true
 max_completion_length: 256    #gpt2: 256, others: 2048
 # Hub
-push_to_hub: false
+push_to_hub: true
 hub_private_repo: true
+wandb_project: ATP
+wandb_entity: kimminsu

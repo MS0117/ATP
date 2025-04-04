@@ -1,5 +1,5 @@
 # Model arguments
-model_name_or_path: "openai-community/gpt2" #deepseek-ai/DeepSeek-Prover-V1.5-SFT, openai-community/gpt2 deepseek-ai/deepseek-coder-1.3b-base
+model_name_or_path: "deepseek-ai/DeepSeek-Prover-V1.5-SFT" #deepseek-ai/DeepSeek-Prover-V1.5-SFT, openai-community/gpt2 deepseek-ai/deepseek-coder-1.3b-base
 model_revision: main
 torch_dtype: bfloat16
 attn_implementation: flash_attention_2
@@ -20,14 +20,14 @@ gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: true
 hub_model_id:
-output_dir: /projects/minsu/ATP_checkpoints
+output_dir: /projects/minsu/ATP_checkpoints/prover_test
 learning_rate: 1.0e-05
 log_level: info
 logging_steps: 5
 logging_strategy: steps
 lr_scheduler_type: cosine
 max_steps: -1
-num_train_epochs: 2
+num_train_epochs: 1
 overwrite_output_dir: true
 per_device_train_batch_size: 4
 remove_unused_columns: true
@@ -49,9 +49,8 @@ lora_alpha: 1
 reward_type: 'lean'
 beta: 0.04
 num_generations: 4
-num_iterations: 1
+num_iterations: 4
 use_vllm: true
-vllm_device: auto
 vllm_gpu_memory_utilization: 0.5
 loss_function: "rloo"
 token_level_kl: true
@@ -59,7 +58,7 @@ normalize_advantage: true
 kl_coef: true
 cliprange: 0.2
 whiten_rewards: true
-max_completion_length: 256   #gpt2: 256, others: 2048
+max_completion_length: 2048   #gpt2: 256, others: 2048
 
 # Hub
 push_to_hub: false
