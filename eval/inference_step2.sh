@@ -1,9 +1,10 @@
 #!/bin/bash
-INPUT_PATH=/userhomes/minsu/symr/data/miniF2F_test.jsonl
-MODEL_PATH=deepseek-ai/DeepSeek-Prover-V1.5-RL
-OUTPUT_DIR=./results/minif2f/deepseek_prover_1.5_rl_128
+export CUDA_VISIBLE_DEVICE=1
+INPUT_PATH=/userhomes/minsu/symr/data/proofnet_test.jsonl    #/userhomes/minsu/symr/data/proofnet_test.jsonl /userhomes/minsu/symr/data/miniF2F_test.jsonl
+MODEL_PATH=Minsukim/internlm_1_8_sft_bf16    #  deepseek-ai/DeepSeek-Prover-V1.5-SFT Minsukim/internlm_1_8_sft_bf16
+OUTPUT_DIR=/userhomes/minsu/symr/eval/results/proofnet/internlm_GRPO_baseline_workbook_data_32
 SPLIT=test
-N=64
+N=32
 CPU=32 #32
 GPU=1
 FIELD=complete

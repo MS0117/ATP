@@ -1,10 +1,11 @@
 #!/bin/bash
-INPUT_PATH=/userhomes/minsu/symr/data/miniF2F_test.jsonl
-MODEL_PATH=deepseek-ai/DeepSeek-Prover-V1.5-SFT
-OUTPUT_DIR=./results/minif2f/deepseek_prover_1.5_sft_3200
+export CUDA_VISIBLE_DEVICE=0
+INPUT_PATH=/userhomes/minsu/symr/data/miniF2F_test.jsonl   #/userhomes/minsu/symr/data/miniF2F_test.jsonl   /userhomes/minsu/symr/data/proofnet_test.jsonl
+MODEL_PATH=Minsukim/internlm_1_8_sft_bf16   #deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B  Minsukim/internlm_1_8_sft_bf16  deepseek-ai/DeepSeek-Prover-V1.5-SFT
+OUTPUT_DIR=/userhomes/minsu/symr/eval/results/minif2f_test_length
 SPLIT=test
-N=3200
-CPU=8 #32
+N=32
+CPU=32 #32
 GPU=1
 FIELD=complete
 while getopts ":i:m:o:s:n:c:g:" opt; do
@@ -29,8 +30,8 @@ python -m step1_inference --input_path ${INPUT_PATH}  --model_path ${MODEL_PATH}
 
 INPUT_FILE=${OUTPUT_DIR}/to_inference_codes.json
 COMPILE_OUTPUT_PATH=${OUTPUT_DIR}/code_compilation.json
-#python -m step2_compile --input_path $INPUT_FILE --output_path $COMPILE_OUTPUT_PATH --cpu $CPU
+python -m step2_compile --input_path $INPUT_FILE --output_path $COMPILE_OUTPUT_PATH --cpu $CPU
 
 
 SUMMARIZE_OUTPUT_PATH=${OUTPUT_DIR}/compilation_summarize.json
-#python -m step3_summarize_compile --input_path $COMPILE_OUTPUT_PATH --output_path $SUMMARIZE_OUTPUT_PATH --field ${FIELD}
+python -m step3_summarize_compile --input_path $COMPILE_OUTPUT_PATH --output_path $SUMMARIZE_OUTPUT_PATH --field ${FIELD}

@@ -2,6 +2,8 @@
 # all copyright to https://github.com/deepseek-ai/DeepSeek-Prover-V1.5.git
 import os
 import time
+import signal
+import psutil
 import json
 import ctypes
 import resource
@@ -38,7 +40,7 @@ def verify_lean4_file(code, lake_path=DEFAULT_LAKE_PATH, lean_workspace=DEFAULT_
         with tempfile.TemporaryFile(mode='w+', encoding='utf-8') as temp_file:
             temp_file.write(message_str + "\r\n\r\n")
             temp_file.seek(0)
-            print(f'Call repl exe')
+            #print(f'Call repl exe')
             outputs = subprocess.run([lake_path, "exe", 'repl'], stdin=temp_file, capture_output=True, text=True,
                                      cwd=lean_workspace, timeout=timeout)
 
@@ -68,7 +70,7 @@ def verify_lean4_file(code, lake_path=DEFAULT_LAKE_PATH, lean_workspace=DEFAULT_
             "system_messages": system_messages
         }
     result['verify_time'] = time.time() - start_time
-    print('result', result)
+    #print('result', result)
     return result
 
 
@@ -141,13 +143,41 @@ class Lean4ServerScheduler(ProcessScheduler):
         self.timeout = timeout
         self._running_monitor = mp.Value(ctypes.c_bool, True)
         self._last_complete_count = mp.Value(ctypes.c_int, 0)
+
+
+
+        #
         self._monitor_process = mp.Process(target=self._monitor)
+
         self._monitor_process.start()
 
+    """
     def _monitor(self):
         while self._running_monitor.value:
             time.sleep(1.0)
             subprocess.run(['killall', 'repl', f'--older-than={int(self.timeout) + 10}s'], capture_output=True)
+    """
+
+    def _monitor(self) -> None:
+        """
+        Every second, kill any process named 'repl' that is older than
+        (timeout + 10) seconds.  Works on Linux, macOS, Windows, and inside
+        containers because it uses psutil instead of the killall binary.
+        """
+        grace_period = self.timeout + 15
+        while self._running_monitor.value:
+            cutoff = time.time() - grace_period
+            time.sleep(1.0)
+
+            for proc in psutil.process_iter(("name", "create_time")):
+                # Adjust the name test if your REPL process has a full path
+                if proc.info["name"] == "repl" and proc.info["create_time"] < cutoff:
+                    try:
+                        proc.send_signal(signal.SIGTERM)
+                        print("kill")
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        # It vanished or we lack permission – ignore and continue
+                        pass
 
     def close(self):
         super().close()

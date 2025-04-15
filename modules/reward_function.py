@@ -11,7 +11,12 @@ import re
 from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig
 import os
 from easydict import EasyDict as AttrDict
+import random
 #os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+from collections import defaultdict
+from typing import List,Tuple
+Interval = Tuple[int, int, int]
 
 def compute_line_offsets(text: str):
     """
@@ -110,6 +115,52 @@ def mark_char_scores_snippet(char_scores, snippet_text, data, default_to_error=F
         for i in range(start_abs, end_abs):
             if 0 <= i < len(char_scores):
                 char_scores[i] = score_to_mark
+
+
+
+
+#treebased
+def build_interval_tree(intervals: List[Interval]) -> Tuple[List[Dict], List[Dict]]:
+    """
+    Build a containment tree.
+    Returns (roots, flat_list_of_all_nodes).
+    Each node is a dict with keys: start, end, label, children, return.
+    """
+    # Sort by start asc, end desc so that parents appear before their children
+    sorted_intv = sorted(intervals, key=lambda x: (x[0], -x[1]))
+    stack = []          # holds the current path of open intervals
+    nodes = []          # flat list of every node
+
+    for s, e, lbl in sorted_intv:
+        node = {"start": s, "end": e, "label": lbl, "children": []}
+        # climb up until we find a parent that contains (s,e)
+        while stack and not (stack[-1]["start"] <= s and stack[-1]["end"] >= e):
+            stack.pop()
+        if stack:                           # stack[-1] is the parent
+            stack[-1]["children"].append(node)
+        stack.append(node)
+        nodes.append(node)
+
+    # Roots are those that never became anyone’s child
+    roots = [n for n in nodes if all(n not in p["children"] for p in nodes)]
+    return roots, nodes
+
+
+def _dfs_compute_returns(node: Dict, gamma: float) -> float:
+    """Post‑order DFS that fills node['return'] and returns it."""
+    child_ret_sum = sum(_dfs_compute_returns(c, gamma) for c in node["children"])
+    node_return = node["label"] + gamma * child_ret_sum
+    node["return"] = node_return
+    return node_return
+
+
+
+
+
+
+
+
+
 
 def compute_tactic_scores_for_output_deepseek(
     prompts,
@@ -484,6 +535,53 @@ def deduplicate_intervals(intervals):
     return deduped
 
 
+
+
+def compute_returns_tree(
+    full_text: str,
+    intervals: List[Interval],
+    tokenizer,
+    gamma: float = 0.9,
+    prompt_len: int = 0,
+):
+    """
+    Like compute_returns_no_split, but reward is propagated along the
+    containment tree instead of a flat, left‑to‑right timeline.
+    """
+    # 1. deduplicate & build the tree ----------------------------------------
+    intervals = deduplicate_intervals(intervals)
+    roots, all_nodes = build_interval_tree(intervals)
+
+    # 2. tree‑discounted returns --------------------------------------------
+    for r in roots:
+        _dfs_compute_returns(r, gamma)
+
+    # 3. baseline & advantages ----------------------------------------------
+    returns = [n["return"] for n in all_nodes]
+    baseline = sum(returns) / len(returns) if returns else 0.0
+
+    # 4. packaging -----------------------------------------------------------
+    results = []
+    for n in all_nodes:
+        results.append(
+            {
+                "start": n["start"],
+                "end": n["end"],
+                "label": n["label"],
+                "immediate_reward": n["label"],
+                "discounted_tree_return": n["return"],
+                "advantage": n["return"] - baseline,
+            }
+        )
+
+    # (Optional) sort so +1 labels first, then by start
+    results.sort(key=lambda x: (0 if x["label"] == 1 else 1, x["start"]))
+    return results, baseline
+
+
+
+
+
 def compute_returns_no_split(full_text, intervals, tokenizer, gamma=0.9, prompt_len=0):
     """
     Given full_text and a list of absolute intervals (start, end, label),
@@ -568,13 +666,24 @@ def compute_token_level_advantages(prompts, completions, outputs_list, tokenizer
         # 1. Gather intervals from out_data (in snippet coordinates)
 
         if type=='advantage':
-            snippet_intervals = gather_intervals_no_split(snippet, out_data)
+            snippet_intervals = gather_intervals_no_split(snippet, out_data)    #get the position of tactic and error in the extracted_code ex) error1=(1,10, -1), tactic1= (26,57,1)
             # 2. (Optionally merge tactic intervals; here we assume no splitting is needed)
             # For simplicity, we assume out_data gives the intervals correctly.
-            abs_intervals = convert_snippet_intervals_to_full_text(prompt, completion, snippet, snippet_intervals)
+            abs_intervals = convert_snippet_intervals_to_full_text(prompt, completion, snippet, snippet_intervals) #get the position of tactic and error in the full text (prompt+completion)
 
             intervals_info, baseline = compute_returns_no_split(full_text, abs_intervals, tokenizer, gamma=gamma,
                                                                 prompt_len=prompt_len)
+
+        if type == 'tree':
+            snippet_intervals = gather_intervals_no_split(snippet,
+                                                          out_data)  # get the position of tactic and error in the extracted_code ex) error1=(1,10, -1), tactic1= (26,57,1)
+            # 2. (Optionally merge tactic intervals; here we assume no splitting is needed)
+            # For simplicity, we assume out_data gives the intervals correctly.
+            abs_intervals = convert_snippet_intervals_to_full_text(prompt, completion, snippet,
+                                                                   snippet_intervals)  # get the position of tactic and error in the full text (prompt+completion)
+
+            intervals_info, baseline = compute_returns_tree(full_text, abs_intervals, tokenizer, gamma=gamma,
+                                                            prompt_len=prompt_len)
             # 3. Tokenize full_text
             #print("intervals_info", intervals_info)
         encoded = tokenizer(full_text, return_offsets_mapping=True, add_special_tokens=False)
@@ -616,18 +725,18 @@ def compute_token_level_advantages(prompts, completions, outputs_list, tokenizer
                 pass
 
         # 7. Assign advantages to tokens based on intervals_info
-        elif type=='advantage':
+        elif type=='advantage'  or type=='tree':
             character_advantages = assign_advantage_to_tokens(full_text, offsets,snippet, intervals_info,prompt_len)
 
         for tid, (start, end) in zip(input_ids, offsets):
             if start >= prompt_len:
-                if type == 'reward':
+                if type == 'reward' :
                     slice_scores = pos_scores[start:end]
                     avg = sum(slice_scores) / len(slice_scores) if slice_scores else 0.0
                     token_scores.append(avg)
 
 
-                elif type=='advantage':
+                elif type=='advantage'  or type=='tree':
                     slice_adv_scores = character_advantages[start:end]
                     avg = sum(slice_adv_scores) / len(slice_adv_scores) if slice_adv_scores else 0.0
                     token_scores.append(avg)
@@ -679,7 +788,7 @@ def lean4_value_reward(prompts, completions, processing_class):
     #print("texts1:",texts)
     #print("type",type(texts[0]))
     #print("\n\n")
-    lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=8, timeout=15,  memory_limit=10, name='verifier',extra_args=AttrDict(allTactics=True))
+    lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=60, timeout=15,  memory_limit=10, name='verifier',extra_args=AttrDict(allTactics=True))
     #print("texts2:", texts)
     extracted_code=[extract_code(result) for result in texts]
     request_id_list = lean4_scheduler.submit_all_request(extracted_code)
@@ -687,10 +796,11 @@ def lean4_value_reward(prompts, completions, processing_class):
     #Worker processes (Lean4ServerProcess) are already running Since p.start() was called in Lean4ServerScheduler.__init__(), all workers are already in their run() loops.
     #As soon as a task is enqueued, the next available worker process automatically picks it up.
     outputs_list = lean4_scheduler.get_all_request_outputs(request_id_list)
+    print(random.choice(outputs_list))
     #print("output_list",outputs_list)
     #print("rewarding start")
     all_token_scores, all_token_texts, binary_pass_score  = compute_token_level_advantages(
-        prompts, completions, outputs_list,processing_class,extracted_code, "advantage",0.9)
+        prompts, completions, outputs_list,processing_class,extracted_code, "tree",0.9)
 
     # 3. Convert to a padded tensor if desired
     #    Each row in padded_scores corresponds to one (prompt+completion) example
@@ -711,7 +821,7 @@ def lean4_grpo_reward(prompts, completions, **kwargs):
     #print("texts1:",texts)
     #print("type",type(texts[0]))
     #print("\n\n")
-    lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=8, timeout=15,  memory_limit=10, name='verifier',extra_args=AttrDict(allTactics=True))
+    lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=60, timeout=15,  memory_limit=10, name='verifier',extra_args=AttrDict(allTactics=True))
     #print("texts2:", texts)
     extracted_code=[extract_code(result) for result in texts]
     request_id_list = lean4_scheduler.submit_all_request(extracted_code)
@@ -719,6 +829,7 @@ def lean4_grpo_reward(prompts, completions, **kwargs):
     #Worker processes (Lean4ServerProcess) are already running Since p.start() was called in Lean4ServerScheduler.__init__(), all workers are already in their run() loops.
     #As soon as a task is enqueued, the next available worker process automatically picks it up.
     outputs_list = lean4_scheduler.get_all_request_outputs(request_id_list)
+    print(random.choice(outputs_list))
     binary_score = [float(item["complete"]) for item in outputs_list]
     lean4_scheduler.close()
     return binary_score
@@ -859,7 +970,7 @@ def main():
 
         # Or just look at the padded row
        # print("Padded row for this completion =>", padded_token_scores[i].tolist())
-    print(binary_pass_score)
+
 
 
     for i, (scores, texts) in enumerate(zip(all_tactic_scores, all_tactic_texts)):

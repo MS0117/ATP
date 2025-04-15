@@ -239,19 +239,19 @@ class CUSTOMTrainer(GRPOTrainer):
 
             #print("completion_ids:", completion_ids)
             #completions_text = self.processing_class.batch_decode(completion_ids, skip_special_tokens=True)
-            print("completions_text",completions_text)
-            print("total_compeltion_num",len(completions_text))
+            #print("completions_text",completions_text)
+            #print("total_compeltion_num",len(completions_text))
             completions_text= broadcast_object_list(completions_text, from_process=0)
             process_slice = slice(
                 self.accelerator.process_index * len(prompts),
                 (self.accelerator.process_index + 1) * len(prompts),
             )
-            print("len(prompts)",len(prompts))
-            print("self.accelerator.process_index",self.accelerator.process_index)
-            print("process_slice",process_slice)
+            #print("len(prompts)",len(prompts))
+            #print("self.accelerator.process_index",self.accelerator.process_index)
+            #print("process_slice",process_slice)
             #print("completions_text",completions_text)
             completions_text = completions_text[process_slice]
-            print("sliced_completions_text", completions_text)
+            #print("sliced_completions_text", completions_text)
 
             #vllm_tokenizer = self.llm.get_tokenizer()
             encoded = self.processing_class(                #why? llm.out id is different from this encoded, I have to decode 그리고 넣어야함..decode token 자리마다 점수,, 이게 ccompletion_id from llm.generate와 달랐음
@@ -284,7 +284,7 @@ class CUSTOMTrainer(GRPOTrainer):
             # Pad the completions, and concatenate them with the prompts
             completion_ids = [torch.tensor(ids, device=device) for ids in completion_ids]
             completion_ids = pad(completion_ids, padding_value=self.processing_class.pad_token_id)
-            print("completion_ids",completion_ids.size())
+            #print("completion_ids",completion_ids.size())
             prompt_completion_ids = torch.cat([prompt_ids, completion_ids], dim=1)
         else:
             # Regular generation path
@@ -451,9 +451,9 @@ class CUSTOMTrainer(GRPOTrainer):
             tactic_advantage = tactic_advantage * value_mask
 
         #print("rewards_per_func",tactic_advantage.size())
-        print(" self.accelerator.num_processes", self.accelerator.num_processes)
-        print(f"{self.accelerator.process_index}_prompt",prompts)
-        print(f"{self.accelerator.process_index}_completions_text", completions_text)
+        #print(" self.accelerator.num_processes", self.accelerator.num_processes)
+        #print(f"{self.accelerator.process_index}_prompt",prompts)
+        #print(f"{self.accelerator.process_index}_completions_text", completions_text)
 
         binary_pass_score = gather(binary_pass_score)
 
@@ -472,8 +472,8 @@ class CUSTOMTrainer(GRPOTrainer):
         mean_grouped_rewards = mean_grouped_rewards.repeat_interleave(self.num_generations, dim=0)
         std_grouped_rewards = std_grouped_rewards.repeat_interleave(self.num_generations, dim=0)
         binary_pass_score_advantage = binary_pass_score - mean_grouped_rewards
-        if self.args.scale_rewards:
-            binary_pass_score_advantage = binary_pass_score_advantage / (std_grouped_rewards + 1e-4)
+
+        binary_pass_score_advantage = binary_pass_score_advantage / (std_grouped_rewards + 1e-4)
 
         # Slice to keep only the local part of the data
         process_slice = slice(
@@ -540,9 +540,6 @@ class CUSTOMTrainer(GRPOTrainer):
         mode = "eval" if self.control.should_evaluate else "train"
 
 
-        if mode == "train":
-            self._total_train_tokens += self.accelerator.gather_for_metrics(attention_mask.sum()).sum().item()
-        self._metrics[mode]["num_tokens"] = [self._total_train_tokens]
 
         # log completion lengths, mean, min, max
         agg_completion_mask = self.accelerator.gather_for_metrics(completion_mask.sum(1))
@@ -575,7 +572,7 @@ class CUSTOMTrainer(GRPOTrainer):
             else:
                 reward_func_name = reward_func.__name__
             self._metrics[mode][f"rewards/{reward_func_name}_tactic_adv"].append(tactic_advantage_mean.item() )
-            self._metrics[mode][f"rewards/{reward_func_name}_binary_mean"].append(mean_grouped_rewards.mean.item())
+            self._metrics[mode][f"rewards/{reward_func_name}_binary_mean"].append(mean_grouped_rewards.mean().item())
             self._metrics[mode][f"rewards/{reward_func_name}_binary_std"].append(std_grouped_rewards.mean().item())
 
         # rewards <-reward_per_func
@@ -656,7 +653,7 @@ class CUSTOMTrainer(GRPOTrainer):
             kl = ref_per_token_logps - per_token_logps
             kl_reward = self.kl_coef * kl
 
-            reward = advantages + kl_reward   #why?
+            reward = tactic_advantages + kl_reward   #why?
 
             if self.rloo_token_level:
                 #print("num_batch",num_batch)
@@ -720,8 +717,9 @@ class CUSTOMTrainer(GRPOTrainer):
             # When using num_iterations == 1, old_per_token_logps == per_token_logps, so we can skip it's computation (see
             # _generate_and_score_completions) and use per_token_logps.detach() instead.
             old_per_token_logps = inputs["old_per_token_logps"] if self.num_iterations > 1 else per_token_logps.detach()
+            epsilon_high = self.epsilon + 0.08
             coef_1 = torch.exp(per_token_logps - old_per_token_logps)
-            coef_2 = torch.clamp(coef_1, 1 - self.epsilon, 1 + self.epsilon)
+            coef_2 = torch.clamp(coef_1, 1 - self.epsilon,1 + epsilon_high)
             per_token_loss1 = coef_1 * advantages.unsqueeze(1)
             per_token_loss2 = coef_2 * advantages.unsqueeze(1)
             per_token_loss = -torch.min(per_token_loss1, per_token_loss2)
@@ -735,10 +733,13 @@ class CUSTOMTrainer(GRPOTrainer):
         mode = "eval" if self.control.should_evaluate else "train"
 
         if self.beta != 0.0:
-            mean_kl = ((ratio * completion_mask).sum(dim=1) / completion_mask.sum(dim=1)).mean()
+            mean_kl = (per_token_kl * completion_mask).sum() / completion_mask.sum()
             self._metrics[mode]["kl"].append(self.accelerator.gather_for_metrics(mean_kl).mean().item())
 
-        is_clipped = (pg_losses < pg_losses2).float()
+        is_clipped = ((coef_1 < 1 - self.epsilon) & (advantages.unsqueeze(1) < 0)) | (
+                (coef_1 > 1 + epsilon_high) & (advantages.unsqueeze(1) > 0)
+        )
+
         clip_ratio = (is_clipped * completion_mask).sum() / completion_mask.sum()
         self._metrics[mode]["clip_ratio"].append(self.accelerator.gather_for_metrics(clip_ratio).mean().item())
         #print("self._metrics[mode]",self._metrics[mode])

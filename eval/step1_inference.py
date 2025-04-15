@@ -66,14 +66,15 @@ for data in data_list:
 
 model_name = args.model_path
 
-tokenizer = AutoTokenizer.from_pretrained(model_name)
+tokenizer = AutoTokenizer.from_pretrained(model_name,trust_remote_code=True)
 # model = LLM(model=model_name, max_num_batched_tokens=8192, seed=1, trust_remote_code=True, swap_space=8, tensor_parallel_size=args.gpu)
-model = LLM(model=model_name, seed=1, trust_remote_code=True, swap_space=8, tensor_parallel_size=args.gpu, max_model_len=4096)
+
+model = LLM(model=model_name, seed=1, trust_remote_code=True, swap_space=8, tensor_parallel_size=args.gpu,gpu_memory_utilization=0.7, max_model_len=8192)      #qwen:131072, deepseek:4096, internlm: 8192
 
 
 sampling_params = SamplingParams(
     temperature=1.0,
-    max_tokens=2048 ,
+    max_tokens=2048,     #2048
     top_p=0.95,
     n=args.n,
 )   #same as DeepSeek-Prover-1.5
