@@ -19,8 +19,8 @@ gradient_accumulation_steps: 16
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: true
-hub_model_id:
-output_dir: ./
+hub_model_id: Minsukim/test_custom_gpt
+output_dir: /projects/minsu/ATP_checkpoints/test
 learning_rate: 1.0e-05
 log_level: info
 logging_steps: 5
@@ -34,15 +34,20 @@ remove_unused_columns: true
 report_to:
 - tensorboard
 - wandb
-save_strategy: "epoch"
+
+save_strategy: "steps"
+save_steps: 150
+save_total_limit: 2
+#resume_from_checkpoint: null
+
 seed: 42
 warmup_ratio: 0.1
 use_peft: true
 load_in_4bit: false
 load_in_8bit: false
-lora_r: 16
+lora_r: 32
+lora_alpha: 32
 
-lora_alpha: 1
 
 # GRPO default setting
 reward_type: 'lean'
@@ -51,7 +56,7 @@ num_generations: 8
 num_iterations: 4
 use_vllm: true
 vllm_gpu_memory_utilization: 0.5
-loss_function: "rloo"
+loss_function: "grpo"
 token_level_kl: true
 normalize_advantage: true
 kl_coef: true

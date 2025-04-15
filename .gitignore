@@ -9,3 +9,6 @@ data/leandojo_benchmark_4_v1/
 data/leandojo_benchmark_4_v10/
 data/leandojo_benchmark_4_v1/
 eval/results/
+trl/
+__pycache__/
+*.pyc

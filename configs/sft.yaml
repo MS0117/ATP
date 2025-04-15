@@ -1,11 +1,11 @@
 # Model arguments
-model_name_or_path:
+model_name_or_path: internlm/internlm2-math-plus-1_8b
 model_revision: main
 torch_dtype: bf16
 attn_implementation: flash_attention_2
 
 # Data training arguments
-dataset_name:
+dataset_name: deepseek
 dataset_split: train
 preprocessing_num_workers: 48
 
@@ -19,19 +19,20 @@ gradient_accumulation_steps: 4
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: False
-hub_model_id:
-output_dir: ./
+hub_model_id: Minsukim/internlm_1_8_sft_deepseek
+output_dir: /projects/minsu/ATP_checkpoints/internlm_1_8_sft_deepseek
 learning_rate: 1.0e-05
 log_level: info
 logging_steps: 5
 logging_strategy: steps
 lr_scheduler_type: cosine
-max_length: 2048
+max_length: 4096
 max_steps: -1
-num_train_epochs: 1
+num_train_epochs: 3
 overwrite_output_dir: true
-per_device_train_batch_size: 8
+per_device_train_batch_size: 16
 remove_unused_columns: true
+trust_remote_code: true
 report_to:
 - tensorboard
 - wandb
@@ -39,12 +40,7 @@ save_strategy: "epoch"
 seed: 42
 warmup_ratio: 0.1
 
-# DPO default setting
-beta: 0.1
-ref_model_mixup_alpha: 0.9
-ref_model_sync_steps: 64
-rpo_alpha: None
 
 # Hub
-push_to_hub: false
+push_to_hub: true
 hub_private_repo: true
