@@ -19,9 +19,8 @@ gradient_accumulation_steps: 8
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: true
-hub_model_id: Minsukim/deepseek_GRPO_baseline_workbookdata_v2hp
-output_dir: /projects/minsu/ATP_checkpoints/deepseek_GRPO_baseline_workbookdata_v2hp
-
+hub_model_id: Minsukim/deepseek_GRPO_baseline_workbookdata
+output_dir: /projects/minsu/ATP_checkpoints/deepseek_GRPO_baseline_workbookdata
 log_level: info
 logging_steps: 10
 logging_strategy: steps
@@ -33,12 +32,12 @@ save_total_limit: 2
 
 
 
-resume_from_checkpoint: true
+#resume_from_checkpoint: true
 
 
-beta: 0.001
-learning_rate: 4.0e-07
-temperature: 0.7
+beta: 0.04
+learning_rate: 1.0e-05
+temperature: 0.9
 
 
 lr_scheduler_type: cosine

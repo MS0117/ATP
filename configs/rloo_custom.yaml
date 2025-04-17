@@ -1,11 +1,11 @@
 # Model arguments
-model_name_or_path: "Minsukim/internlm_1_8_sft_bf16" #Minsukim/internlm_1_8_sft #openai-community/gpt2 deepseek-ai/DeepSeek-Prover-V1.5-SFT
+model_name_or_path: "openai-community/gpt2" #Minsukim/internlm_1_8_sft #openai-community/gpt2 deepseek-ai/DeepSeek-Prover-V1.5-SFT
 model_revision: main
 torch_dtype: bf16
 attn_implementation: flash_attention_2
 trust_remote_code: true
 # Data training arguments
-dataset_name: deepseek
+dataset_name: workbook
 dataset_split: train
 preprocessing_num_workers: 24
 
@@ -13,14 +13,15 @@ preprocessing_num_workers: 24
 bf16: true
 do_eval: false
 tf32: true
-torch_compile: true
+torch_compile: false
 optim: paged_adamw_8bit
 gradient_accumulation_steps: 8
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
-  use_reentrant: true
-hub_model_id: Minsukim/GRPO_internlm_baseline_deepseekdata_v2hp
-output_dir: /projects/minsu/ATP_checkpoints/internlm_GRPO_baseline_deepseekdata_v2hp
+  use_reentrant: False
+per_device_train_batch_size: 8
+hub_model_id:
+output_dir: /projects/minsu/ATP_checkpoints/test
 
 log_level: info
 logging_steps: 10
@@ -30,20 +31,20 @@ save_strategy: "steps"
 save_steps: 100
 save_total_limit: 2
 
+
+
+
 #resume_from_checkpoint: true
 
 
-beta: 0.001
 learning_rate: 4.0e-07
 temperature: 0.7
-
 
 
 lr_scheduler_type: cosine
 max_steps: -1
 num_train_epochs: 1
 overwrite_output_dir: true
-per_device_train_batch_size: 8
 remove_unused_columns: true
 report_to:
 - tensorboard
@@ -51,18 +52,18 @@ report_to:
 seed: 42
 warmup_ratio: 0.1
 
-num_generations: 4
-num_iterations: 2
-use_vllm: true
-vllm_gpu_memory_utilization: 0.5
-max_completion_length: 1024   #gpt2: 256, others: 2048 #internlm 512
-max_prompt_length: 512
+#rloo
+local_rollout_forward_batch_size: 4
+response_length: 256  #gpt2: 256, others: 2048
+rloo_k: 4
+num_sample_generations: 0
+
 use_peft: true
 load_in_4bit: false
 load_in_8bit: false
 lora_r: 16
 lora_alpha: 16
-lora_target_modules: all-linear  #deepseek는 주석, internlm은 all-linear
+#lora_target_modules: all-linear
 
 
 # Hub

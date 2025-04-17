@@ -20,7 +20,7 @@ from transformers import (
 
 )
 
-from modules import CUSTOMTrainer,lean4_value_reward,lean4_grpo_reward
+from modules import CUSTOMTrainer,CustomRLOOTrainer,lean4_value_reward,lean4_grpo_reward,lean4_rloo_reward,lean4_rloo_custom_reward
 from utils import (
     DataArguments,
     H4ArgumentParser,
@@ -29,12 +29,15 @@ from utils import (
     DPOConfig,
     PPOConfig,
     CUSTOMConfig,
+    RLOOConfig,
+
     make_padded_logits,
     DTYPE_MAP,
     get_quantization_config,
     get_peft_config
 )
-from trl import GRPOConfig,GRPOTrainer,RewardConfig,SFTConfig, SFTTrainer,PPOTrainer,PPOConfig, RewardTrainer, DataCollatorForCompletionOnlyLM
+from peft import get_peft_model
+from trl import GRPOConfig,GRPOTrainer,RewardConfig,SFTConfig, SFTTrainer,PPOTrainer,PPOConfig, RewardTrainer, RLOOTrainer, RLOOConfig, DataCollatorForCompletionOnlyLM
 #from src import ()
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import torch._dynamo as dynamo
@@ -116,6 +119,10 @@ def main(model_args,
     training_args.run_name = f"{training_args.run_name}-{START_TIME}"
 
 
+    #if'rloo' in training_type.lower() or 'rloocustom' in training_type.lower():
+    #    from accelerate import Accelerator
+    #    accelerator = Accelerator()
+
         # Load tokenizer and model
     print("trust",model_args.trust_remote_code )
     tokenizer = AutoTokenizer.from_pretrained(
@@ -125,7 +132,7 @@ def main(model_args,
 
     peft_config = get_peft_config(model_args)
 
-    if 'sft' in training_type.lower():
+    if training_type.lower() in ['sft', 'rloo', 'customrloo'] :
         model = model_type.from_pretrained(
             model_args.model_name_or_path,
             attn_implementation=model_args.attn_implementation,
@@ -133,9 +140,24 @@ def main(model_args,
             trust_remote_code=model_args.trust_remote_code,
             quantization_config=quantization_config
         )
+        if training_type.lower() in ['rloo', 'customrloo'] :
+            if model_args.use_peft:
+                policy = get_peft_model(model, peft_config)
+            else:
+                policy=model
 
 
-    if 'grpo' in training_type.lower() or 'custom' in training_type.lower():
+            if training_args.gradient_checkpointing:
+                policy.enable_input_require_grads()
+            ref=model_type.from_pretrained(
+            model_args.model_name_or_path,
+            attn_implementation=model_args.attn_implementation,
+            torch_dtype=DTYPE_MAP[model_args.torch_dtype],
+            trust_remote_code=model_args.trust_remote_code,
+            quantization_config=quantization_config
+        )
+
+    if 'grpo' == training_type.lower() or 'custom'== training_type.lower():
         model_kwargs = dict(
             trust_remote_code=model_args.trust_remote_code,
             attn_implementation=model_args.attn_implementation,
@@ -147,7 +169,7 @@ def main(model_args,
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
 
-    if 'grpo' in training_type.lower() or 'custom' in training_type.lower():
+    if 'grpo' in training_type.lower() or 'custom' in training_type.lower() or 'rloo' in training_type.lower() or 'rloocustom' in training_type.lower():
 
         if 'minif2f' in data_args.dataset_name.lower():
             data_path="/userhomes/minsu/symr/data/toy_train.jsonl"
@@ -206,9 +228,33 @@ def main(model_args,
             # remove_columns=raw_datasets["train"].column_names
         )
 
+    def tokenize_fn(batch):
+        return tokenizer(
+            batch["prompt"],
+            max_length=512,
+            truncation=True,
+            add_special_tokens=True,
+        )
+
+    # 👉 RLOO 처리: prompt + tokenize
+    if "rloo" in training_type.lower():
+        with PartialState().local_main_process_first():
+            train_dataset = raw_datasets["train"].map(build_prompt)
+
+            train_dataset = train_dataset.map(
+                tokenize_fn,
+                batched=True,
+                remove_columns=[
+                    "header", "informal_prefix", "formal_statement", "prompt"
+                ],
+            )
+
+
 
     eval_dataset = None if not data_args.use_test_set else test_dataset
     #reward_funcs=training_args.reward_type
+
+
 
 
     # Prepare trainer and train
@@ -231,7 +277,7 @@ def main(model_args,
             eval_dataset=eval_dataset,
             peft_config=peft_config
         )
-    elif  'custom' in training_type.lower():
+    elif  'custom'==training_type.lower():
         trainer = CUSTOMTrainer(
             model=model,
             args=training_args,
@@ -241,7 +287,7 @@ def main(model_args,
             peft_config=peft_config
         )
 
-    elif 'grpo' in training_type.lower():
+    elif 'grpo' ==training_type.lower():
 
         trainer = GRPOTrainer(
             model=model,
@@ -250,6 +296,27 @@ def main(model_args,
             args=training_args,
             train_dataset=train_dataset,
             peft_config=peft_config
+        )
+    elif 'rloo' ==training_type.lower():
+
+        trainer = RLOOTrainer(
+            policy=policy,
+            ref_policy=ref,
+            processing_class=tokenizer,
+            reward_model=lean4_rloo_reward,
+            config=training_args,
+            train_dataset=train_dataset,
+        )
+    elif 'customrloo'== training_type.lower():
+
+        trainer = CustomRLOOTrainer(
+            policy=policy,
+            ref_policy=ref,
+            processing_class=tokenizer,
+            reward_model=lean4_rloo_custom_reward,
+            config=training_args,
+            train_dataset=train_dataset,
+
         )
 
 
@@ -362,6 +429,16 @@ if __name__ == "__main__":
     elif training_type == 'PPO':
         config_type = PPOConfig
         model_type = AutoModelForCausalLM
+    elif training_type == 'RLOO':
+        config_type = RLOOConfig
+        model_type = AutoModelForCausalLM
+    elif training_type == 'CUSTOMRLOO':
+        config_type = RLOOConfig
+        model_type = AutoModelForCausalLM
+    #elif training_type == 'RLOO_CUSTOM':
+    #    config_type = RLOOCUSTOMConfig
+    #    model_type = AutoModelForCausalLM
+
 
     else:
         raise Exception("Please check the training method.")

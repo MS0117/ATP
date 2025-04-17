@@ -775,6 +775,24 @@ def list_of_lists_to_padded_tensor(list_of_lists, padding_value=0):
 
     return padded_tensor
 
+def rloo_list_of_lists_to_padded_tensor(list_of_lists, max_len, padding_value=0):
+    """
+    Convert list of variable-length lists to a padded 2D Tensor
+    shape: (batch_size, max_length_in_batch)
+    """
+    #for i,seq in enumerate(list_of_lists):
+    #    print("index",i)
+    #    print("len(seq)",len(seq))
+    batch_size = len(list_of_lists)
+    padded_tensor = torch.full((batch_size, max_len), fill_value=padding_value, dtype=torch.float)
+
+    for i, seq in enumerate(list_of_lists):
+        length = len(seq)
+        padded_tensor[i, :length] = torch.tensor(seq, dtype=torch.float)
+
+    return padded_tensor
+
+
 def extract_code(inputs):
     try:
         return re.search(r'```lean4\n(.*?)\n```', inputs, re.DOTALL).group(1)
@@ -834,6 +852,56 @@ def lean4_grpo_reward(prompts, completions, **kwargs):
     lean4_scheduler.close()
     return binary_score
 
+
+
+def lean4_rloo_reward(texts, **kwargs):
+    #texts = [p + c for p, c in zip(prompts, completions)]
+    #print("prompts",prompts)
+    #print("completions",completions)
+    #print("texts1:",texts)
+    #print("type",type(texts[0]))
+    #print("\n\n")
+    lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=60, timeout=15,  memory_limit=10, name='verifier',extra_args=AttrDict(allTactics=True))
+    #print("texts2:", texts)
+    extracted_code=[extract_code(result) for result in texts]
+    request_id_list = lean4_scheduler.submit_all_request(extracted_code)
+    #extract lean code in the output and give to lean4_scheduler.submit_all_request, after this, each input goes to queue, and request_id_list receive each id.
+    #Worker processes (Lean4ServerProcess) are already running Since p.start() was called in Lean4ServerScheduler.__init__(), all workers are already in their run() loops.
+    #As soon as a task is enqueued, the next available worker process automatically picks it up.
+    outputs_list = lean4_scheduler.get_all_request_outputs(request_id_list)
+    print(random.choice(outputs_list))
+    binary_score = [float(item["complete"]) for item in outputs_list]
+    lean4_scheduler.close()
+    return binary_score
+
+
+
+def lean4_rloo_custom_reward(prompts, completions, processing_class,max_len):
+    texts = [p + c for p, c in zip(prompts, completions)]
+
+    lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=60, timeout=15, memory_limit=10, name='verifier',
+                                           extra_args=AttrDict(allTactics=True))
+    # print("texts2:", texts)
+    extracted_code = [extract_code(result) for result in texts]
+    request_id_list = lean4_scheduler.submit_all_request(extracted_code)
+    # extract lean code in the output and give to lean4_scheduler.submit_all_request, after this, each input goes to queue, and request_id_list receive each id.
+    # Worker processes (Lean4ServerProcess) are already running Since p.start() was called in Lean4ServerScheduler.__init__(), all workers are already in their run() loops.
+    # As soon as a task is enqueued, the next available worker process automatically picks it up.
+    outputs_list = lean4_scheduler.get_all_request_outputs(request_id_list)
+    print(random.choice(outputs_list))
+    # print("output_list",outputs_list)
+    # print("rewarding start")
+    all_token_scores, all_token_texts, binary_pass_score = compute_token_level_advantages(
+        prompts, completions, outputs_list, processing_class, extracted_code, "tree", 0.9)
+
+    # 3. Convert to a padded tensor if desired
+    #    Each row in padded_scores corresponds to one (prompt+completion) example
+    #    The columns are the tokens in the completion portion
+    padded_scores = rloo_list_of_lists_to_padded_tensor(all_token_scores, max_len,padding_value=0)
+    binary_score = [float(item["complete"]) for item in outputs_list]
+    # print("padded_scores",padded_scores.size())
+    lean4_scheduler.close()
+    return padded_scores, binary_score
 
 
 
