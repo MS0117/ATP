@@ -5,7 +5,8 @@ from .configs import (
     SFTConfig,
     DPOConfig,
     PPOConfig,
-    CUSTOMConfig
+    CUSTOMConfig,
+    RLOOConfig
 )
 from .data_utils import (
     make_padded_logits,
@@ -29,5 +30,6 @@ __all__ = [
     "make_padded_logits",
     "DTYPE_MAP"
     "get_quantization_config",
-    "get_peft_config"
+    "get_peft_config",
+    "RLOOConfig"
 ]

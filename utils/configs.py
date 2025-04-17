@@ -342,3 +342,14 @@ class GRPOConfig(trl.GRPOConfig):
         metadata={"help": ("Whether to log and evaluate the first global_step or not.")},
     )
 
+class RLOOConfig(trl.RLOOConfig):
+
+    hub_model_revision: Optional[str] = field(
+        default="main",
+        metadata={"help": ("The Hub model branch to push the model to.")},
+    )
+    logging_first_step: bool = field(
+        default=True,
+        metadata={"help": ("Whether to log and evaluate the first global_step or not.")},
+    )
+
