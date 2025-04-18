@@ -199,7 +199,7 @@ class CUSTOMTrainer(GRPOTrainer):
             prompts_text, return_tensors="pt", padding=True, padding_side="left", add_special_tokens=False)       #pad_token=self.processing_class.eos_token_id
         prompt_inputs =  Trainer._prepare_inputs(self,prompt_inputs)
         prompt_ids, prompt_mask = prompt_inputs["input_ids"], prompt_inputs["attention_mask"]
-
+        print("max_prompt_length",self.max_prompt_length)
         if self.max_prompt_length is not None:
             prompt_ids = prompt_ids[:, -self.max_prompt_length:]
             prompt_mask = prompt_mask[:, -self.max_prompt_length:]
@@ -257,7 +257,8 @@ class CUSTOMTrainer(GRPOTrainer):
             encoded = self.processing_class(                #why? llm.out id is different from this encoded, I have to decode 그리고 넣어야함..decode token 자리마다 점수,, 이게 ccompletion_id from llm.generate와 달랐음
                 completions_text,
                 return_offsets_mapping=True,
-                add_special_tokens=False)
+                add_special_tokens=False,
+                )
             completion_ids = encoded["input_ids"]
             completion_ids = [tuple(ids) for ids in completion_ids]
             #for i in range(len(completion_ids)):
@@ -448,7 +449,9 @@ class CUSTOMTrainer(GRPOTrainer):
 
         if self.whiten_rewards:
             tactic_advantage = masked_whiten(tactic_advantage, mask=value_mask, shift_mean=False)
-            tactic_advantage = tactic_advantage * value_mask
+            tactic_advantage = tactic_advantage * completion_mask
+        else:
+            tactic_advantage = tactic_advantage * completion_mask
 
         #print("rewards_per_func",tactic_advantage.size())
         #print(" self.accelerator.num_processes", self.accelerator.num_processes)
@@ -508,9 +511,6 @@ class CUSTOMTrainer(GRPOTrainer):
         """
 
 
-
-
-        tactic_advantage=tactic_advantage
 
 
 

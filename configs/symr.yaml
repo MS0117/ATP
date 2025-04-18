@@ -61,13 +61,14 @@ num_generations: 4
 num_iterations: 2
 use_vllm: true
 vllm_gpu_memory_utilization: 0.5
-loss_function: "rloo"
+loss_function: "grpo"
 token_level_kl: true
 normalize_advantage: true
 kl_coef: true
 cliprange: 0.2
-whiten_rewards: true
+whiten_rewards: false
 max_completion_length: 256   #gpt2: 256, others: 2048
+
 
 # Hub
 push_to_hub: true

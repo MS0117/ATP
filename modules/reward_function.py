@@ -787,8 +787,10 @@ def rloo_list_of_lists_to_padded_tensor(list_of_lists, max_len, padding_value=0)
     padded_tensor = torch.full((batch_size, max_len), fill_value=padding_value, dtype=torch.float)
 
     for i, seq in enumerate(list_of_lists):
-        length = len(seq)
-        padded_tensor[i, :length] = torch.tensor(seq, dtype=torch.float)
+        # truncate if too long
+        length = min(len(seq), max_len)
+        # convert & slice to max_len, then assign
+        padded_tensor[i, :length] = torch.tensor(seq[:length], dtype=torch.float)
 
     return padded_tensor
 
