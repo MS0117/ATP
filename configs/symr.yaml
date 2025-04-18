@@ -68,7 +68,8 @@ kl_coef: true
 cliprange: 0.2
 whiten_rewards: false
 max_completion_length: 256   #gpt2: 256, others: 2048
-
+negative_dropout : true
+dropout_rate: 0.5
 
 # Hub
 push_to_hub: true

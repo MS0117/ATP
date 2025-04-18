@@ -24,6 +24,8 @@ class CustomRLOOTrainer(RLOOTrainer):
     def __init__(self, config, advantage_weight=1.0, **kwargs):
         super().__init__(config=config, **kwargs)
         self.advantage_weight = advantage_weight
+        self.negative_dropout=config.negative_dropout
+        self.dropout_rate=config.dropout_rate
 
     def train(self):
         args = self.args
@@ -197,7 +199,7 @@ class CustomRLOOTrainer(RLOOTrainer):
 
                 # Normalize rewards
                 if args.normalize_reward:
-                    binary_pass_scores = ( binary_pass_scores  -  binary_pass_scores.mean()) / (binary_pass_score .std() + 1e-8)
+                    binary_pass_scores = ( binary_pass_scores  -  binary_pass_scores.mean()) / (binary_pass_scores .std() + 1e-8)
                     binary_pass_scores  = torch.clamp( binary_pass_scores , -args.reward_clip_range, args.reward_clip_range)
 
                 # Compute total reward with KL penalty
@@ -209,7 +211,7 @@ class CustomRLOOTrainer(RLOOTrainer):
                     eos_indices = padding_mask.size(1) - 1 - padding_mask.long().fliplr().argmax(dim=1, keepdim=True)
                     last_reward = torch.zeros_like(kl)
                     # Ensure scores has correct shape and type
-                    scores_shaped = binary_pass_score .reshape(-1, 1).to(kl.dtype)
+                    scores_shaped = binary_pass_scores .reshape(-1, 1).to(kl.dtype)
                     last_reward.scatter_(dim=1, index=eos_indices, src=scores_shaped)
 
                     # Combine KL reward and last reward
@@ -247,11 +249,37 @@ class CustomRLOOTrainer(RLOOTrainer):
                 advantages = torch.masked_fill(advantages, padding_mask, 0.0)
 
 
+
+
+                #dropout
+                binary_mask = (binary_pass_scores != 0).clone()  # pass는 무조건 유지
+
+                if self.negative_dropout:
+                    fail_idx = (binary_pass_scores == 0).nonzero(as_tuple=True)[0]
+                    num_keep = int(len(fail_idx) * (1 - self.dropout_rate))
+                    if num_keep > 0:
+                        perm = torch.randperm(len(fail_idx), device=binary_pass_scores.device)
+                        keep_idx = fail_idx[perm[:num_keep]]
+                        binary_mask[keep_idx] = True
+
+                # 토큰 단위 마스크
+                token_mask = binary_mask.unsqueeze(1)
+
+                # dropout 적용
+                rlhf_reward = rlhf_reward.flatten()  # [N]
+                #binary_pass_scores = rlhf_reward * binary_mask  # [N]
+                advantages  = advantages  * token_mask  # [N, L]
+
+
+
                 # Normalize advantages
                 if args.normalize_advantage:
                     advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
                 torch.cuda.empty_cache()
+
+
+
             #print("advantages",advantages.size())
             # Do multiple epochs of PPO training, with a fresh random shuffle in each epoch
             for ppo_epoch_idx in range(args.num_ppo_epochs):

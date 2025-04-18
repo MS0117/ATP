@@ -329,6 +329,8 @@ class CUSTOMConfig(trl.GRPOConfig):
     token_level_kl : Optional[bool]=field(default=True)
     cliprange : Optional[float]=field(default=0.2)
     whiten_rewards :Optional[bool]=field(default=True)
+    negative_dropout :Optional[bool]=field(default=False)
+    dropout_rate: Optional[float]=field(default=0.5)
 
 @dataclass
 class GRPOConfig(trl.GRPOConfig):
@@ -342,6 +344,7 @@ class GRPOConfig(trl.GRPOConfig):
         metadata={"help": ("Whether to log and evaluate the first global_step or not.")},
     )
 
+@dataclass
 class RLOOConfig(trl.RLOOConfig):
 
     hub_model_revision: Optional[str] = field(
@@ -352,4 +355,18 @@ class RLOOConfig(trl.RLOOConfig):
         default=True,
         metadata={"help": ("Whether to log and evaluate the first global_step or not.")},
     )
+
+@dataclass
+class CUSTOMRLOOConfig(trl.RLOOConfig):
+
+    hub_model_revision: Optional[str] = field(
+        default="main",
+        metadata={"help": ("The Hub model branch to push the model to.")},
+    )
+    logging_first_step: bool = field(
+        default=True,
+        metadata={"help": ("Whether to log and evaluate the first global_step or not.")},
+    )
+    negative_dropout :Optional[bool]=field(default=False)
+    dropout_rate: Optional[float]=field(default=0.5)
 

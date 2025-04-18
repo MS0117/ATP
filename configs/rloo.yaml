@@ -48,7 +48,8 @@ seed: 42
 warmup_ratio: 0.1
 
 #rloo
-local_rollout_forward_batch_size: 8
+local_rollout_forward_batch_size: 4   #should be same as rloo_k
+local_mini_batch_size: 4 #should be same as rloo_k
 response_length: 2048 #gpt2: 256, others: 2048
 rloo_k: 4
 num_sample_generations: 0

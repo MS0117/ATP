@@ -30,7 +30,7 @@ from utils import (
     PPOConfig,
     CUSTOMConfig,
     RLOOConfig,
-
+    CUSTOMRLOOConfig,
     make_padded_logits,
     DTYPE_MAP,
     get_quantization_config,
@@ -433,8 +433,9 @@ if __name__ == "__main__":
         config_type = RLOOConfig
         model_type = AutoModelForCausalLM
     elif training_type == 'CUSTOMRLOO':
-        config_type = RLOOConfig
+        config_type = CUSTOMRLOOConfig
         model_type = AutoModelForCausalLM
+        print("customrloo")
     #elif training_type == 'RLOO_CUSTOM':
     #    config_type = RLOOCUSTOMConfig
     #    model_type = AutoModelForCausalLM

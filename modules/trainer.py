@@ -169,6 +169,8 @@ class CUSTOMTrainer(GRPOTrainer):
         self.normalize_advantage=args.normalize_advantage
         self.whiten_rewards=args.whiten_rewards
         self.cliprange=args.cliprange
+        self.negative_dropout=args.negative_dropout
+        self.dropout_rate=args.dropout_rate
 
     @profiling_decorator
     def _prepare_inputs(self, inputs: dict[str, Union[torch.Tensor, Any]]) -> dict[str, Union[torch.Tensor, Any]]:
@@ -199,7 +201,7 @@ class CUSTOMTrainer(GRPOTrainer):
             prompts_text, return_tensors="pt", padding=True, padding_side="left", add_special_tokens=False)       #pad_token=self.processing_class.eos_token_id
         prompt_inputs =  Trainer._prepare_inputs(self,prompt_inputs)
         prompt_ids, prompt_mask = prompt_inputs["input_ids"], prompt_inputs["attention_mask"]
-        print("max_prompt_length",self.max_prompt_length)
+        #print("max_prompt_length",self.max_prompt_length)
         if self.max_prompt_length is not None:
             prompt_ids = prompt_ids[:, -self.max_prompt_length:]
             prompt_mask = prompt_mask[:, -self.max_prompt_length:]
@@ -607,6 +609,7 @@ class CUSTOMTrainer(GRPOTrainer):
                     df = pd.DataFrame(table)
                     wandb.log({"completions": wandb.Table(dataframe=df)})
 
+
         return {
             "prompt_ids": prompt_ids,
             "prompt_mask": prompt_mask,
@@ -713,9 +716,29 @@ class CUSTOMTrainer(GRPOTrainer):
             # Compute the loss
             tactic_advantages = inputs["tactic_advantages"]
             binary_score = inputs["binary_score"]
+
             advantages = tactic_advantages+binary_score.unsqueeze(1)
             # When using num_iterations == 1, old_per_token_logps == per_token_logps, so we can skip it's computation (see
             # _generate_and_score_completions) and use per_token_logps.detach() instead.
+
+            # dropout
+            binary_mask = (binary_score != 0).clone()  # pass는 무조건 유지
+            if self.negative_dropout:
+                fail_idx = ( binary_score== 0).nonzero(as_tuple=True)[0]
+                num_keep = int(len(fail_idx) * (1 - self.dropout_rate))
+                if num_keep > 0:
+                    perm = torch.randperm(len(fail_idx), device=binary_score.device)
+                    keep_idx = fail_idx[perm[:num_keep]]
+                    binary_mask[keep_idx] = True
+
+            # 토큰 단위 마스크
+            token_mask = binary_mask.unsqueeze(1)
+
+            advantages= advantages * token_mask
+
+
+
+
             old_per_token_logps = inputs["old_per_token_logps"] if self.num_iterations > 1 else per_token_logps.detach()
             epsilon_high = self.epsilon + 0.08
             coef_1 = torch.exp(per_token_logps - old_per_token_logps)
