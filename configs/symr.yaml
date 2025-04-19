@@ -1,9 +1,9 @@
 # Model arguments
-model_name_or_path: "openai-community/gpt2"   #deepseek-ai/DeepSeek-Prover-V1.5-SFT, openai-community/gpt2
+model_name_or_path: "deepseek-ai/DeepSeek-Prover-V1.5-SFT"   #deepseek-ai/DeepSeek-Prover-V1.5-SFT, openai-community/gpt2
 model_revision: main
 torch_dtype: bfloat16
 attn_implementation: flash_attention_2
-
+trust_remote_code: true
 # Data training arguments
 dataset_name: workbook
 dataset_split: train
@@ -19,11 +19,11 @@ gradient_accumulation_steps: 8
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: true
-hub_model_id:
-output_dir: /projects/minsu/ATP_checkpoints/full_prover_test
+hub_model_id: Minsukim/deepseek_CUSTOM_GRPO_workbookdata
+output_dir: /projects/minsu/ATP_checkpoints/deepseek_CUSTOM_GRPO_workbookdata
 
 log_level: info
-logging_steps: 5
+logging_steps: 10
 logging_strategy: steps
 lr_scheduler_type: cosine
 max_steps: -1
@@ -35,10 +35,15 @@ report_to:
 - tensorboard
 - wandb
 
+
+#resume_from_checkpoint: true
+
 save_strategy: "steps"
 save_steps: 100
 save_total_limit: 2
-#resume_from_checkpoint: null
+
+
+
 seed: 42
 warmup_ratio: 0.1
 use_peft: true
@@ -49,10 +54,9 @@ lora_alpha: 16
 
 
 
-
-temperature: 0.7
-beta: 0.001
-learning_rate: 4.0e-07
+beta: 0.04
+learning_rate: 1.0e-05
+temperature: 0.9
 
 # GRPO default setting
 reward_type: 'lean'
@@ -67,7 +71,11 @@ normalize_advantage: true
 kl_coef: true
 cliprange: 0.2
 whiten_rewards: false
-max_completion_length: 256   #gpt2: 256, others: 2048
+
+
+max_completion_length: 2048 #gpt2: 256, others: 2048
+
+
 negative_dropout : true
 dropout_rate: 0.5
 

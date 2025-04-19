@@ -368,13 +368,17 @@ def main(model_args,
 
     if training_args.resume_from_checkpoint:
         print("rusume")
-        train_result = trainer.train(resume_from_checkpoint=training_args.resume_from_checkpoint)
+        if training_type.lower() in ['rloo', 'customrloo']:
+            train_result = trainer.train()
+        else:
+            train_result = trainer.train(resume_from_checkpoint=training_args.resume_from_checkpoint)
     else:
         train_result = trainer.train()
-    metrics = train_result.metrics
-    metrics["train_samples"] = len(train_dataset)
-    trainer.log_metrics("train", metrics)
-    trainer.save_metrics("train", metrics)
+    if training_type.lower() not in ['rloo', 'customrloo']:
+        metrics = train_result.metrics
+        metrics["train_samples"] = len(train_dataset)
+        trainer.log_metrics("train", metrics)
+        trainer.save_metrics("train", metrics)
 
     logger.info("*** Training complete ***")
 
@@ -396,21 +400,22 @@ def main(model_args,
         kwargs = {
             "model_name": model_args.model_name_or_path,
         }
-    if trainer.accelerator.is_main_process:
-        trainer.create_model_card(**kwargs)
-        # Restore k,v cache for fast inference
-        trainer.model.config.use_cache = True
-        trainer.model.config.save_pretrained(training_args.output_dir)
+    if training_type.lower() not in ['rloo', 'customrloo']:
+        if trainer.accelerator.is_main_process:
+            trainer.create_model_card(**kwargs)
+            # Restore k,v cache for fast inference
+            trainer.model.config.use_cache = True
+            trainer.model.config.save_pretrained(training_args.output_dir)
 
     # Push to hub
     if training_args.push_to_hub is True:
         logger.info("Pushing to hub...")
         trainer.push_to_hub(**kwargs)
 
-
     logger.info("*** Training complete! ***")
-    #wandb.finish()
-    #logger.info("WandB run finished cleanly.")
+    wandb.finish()
+    logger.info("WandB run finished cleanly.")
+    sys.exit(0)
 
 
 if __name__ == "__main__":
