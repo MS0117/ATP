@@ -461,7 +461,7 @@ class CUSTOMTrainer(GRPOTrainer):
         #print(f"{self.accelerator.process_index}_completions_text", completions_text)
 
         binary_pass_score = gather(binary_pass_score)
-
+        binary_score_mean = binary_pass_score.mean(0)
         # Apply weights to each reward function's output and sum
 
 
@@ -561,21 +561,20 @@ class CUSTOMTrainer(GRPOTrainer):
         self._metrics[mode]["min_terminated_completion_length"].append(term_completion_mask.float().min().item())
         self._metrics[mode]["max_terminated_completion_length"].append(term_completion_mask.float().max().item())
 
-        
 
-
-
-
-
+        reward_mean = binary_score_mean
         tactic_advantage_mean = tactic_advantage.mean()
         for i, reward_func in enumerate(self.reward_funcs):
             if isinstance(reward_func, nn.Module):  # Module instead of PretrainedModel for compat with compiled models
                 reward_func_name = reward_func.config._name_or_path.split("/")[-1]
             else:
                 reward_func_name = reward_func.__name__
-            self._metrics[mode][f"rewards/{reward_func_name}_tactic_adv"].append(tactic_advantage_mean.item() )
-            self._metrics[mode][f"rewards/{reward_func_name}_binary_mean"].append(mean_grouped_rewards.mean().item())
-            self._metrics[mode][f"rewards/{reward_func_name}_binary_std"].append(std_grouped_rewards.mean().item())
+            self._metrics[mode][f"rewards/{reward_func_name}"].append(reward_mean.item())
+
+
+        self._metrics[mode][f"rewards/tactic_adv"].append(tactic_advantage_mean.item() )
+        self._metrics[mode][f"rewards/grouped_binary_mean"].append(mean_grouped_rewards.mean().item())
+        self._metrics[mode][f"rewards/grouped_binary_std"].append(std_grouped_rewards.mean().item())
 
         # rewards <-reward_per_func
         tactic_advantage_mean= tactic_advantage_mean

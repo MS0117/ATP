@@ -56,7 +56,7 @@ num_generations: 4
 num_iterations: 2
 use_vllm: true
 vllm_gpu_memory_utilization: 0.5
-max_completion_length: 512   #gpt2: 256, others: 2048 #internlm 512
+max_completion_length: 1024   #gpt2: 256, others: 2048 #internlm 1024
 max_prompt_length: 512
 use_peft: false
 load_in_4bit: false

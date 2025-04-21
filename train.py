@@ -169,7 +169,7 @@ def main(model_args,
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
 
-    if 'grpo' in training_type.lower() or 'custom' in training_type.lower() or 'rloo' in training_type.lower() or 'rloocustom' in training_type.lower():
+    if training_type.lower() in ['grpo','custom', 'rloo', 'customrloo']:
 
         if 'minif2f' in data_args.dataset_name.lower():
             data_path="/userhomes/minsu/symr/data/toy_train.jsonl"
@@ -237,17 +237,27 @@ def main(model_args,
         )
 
     # 👉 RLOO 처리: prompt + tokenize
-    if "rloo" in training_type.lower():
+    if training_type.lower() in ['rloo', 'customrloo']:
         with PartialState().local_main_process_first():
-            train_dataset = raw_datasets["train"].map(build_prompt)
 
-            train_dataset = train_dataset.map(
-                tokenize_fn,
-                batched=True,
-                remove_columns=[
-                    "header", "informal_prefix", "formal_statement", "prompt"
-                ],
-            )
+            train_dataset = raw_datasets["train"].map(build_prompt)
+            if 'workbook' in data_args.dataset_name.lower():
+                train_dataset = train_dataset.map(
+                    tokenize_fn,
+                    batched=True,
+                    remove_columns=[
+                        "header", "informal_prefix", "formal_statement", "prompt"
+                    ],
+                )
+            else:
+                train_dataset = train_dataset.map(
+                    tokenize_fn,
+                    batched=True,
+                    remove_columns=[
+                        "header", "informal_prefix", "formal_statement", "prompt","formal_proof",  "name", "split", "goal",
+                    ],
+                )
+
 
 
 

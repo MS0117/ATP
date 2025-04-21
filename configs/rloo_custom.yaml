@@ -1,5 +1,5 @@
 # Model arguments
-model_name_or_path: "deepseek-ai/DeepSeek-Prover-V1.5-SFT" #Minsukim/internlm_1_8_sft #openai-community/gpt2 deepseek-ai/DeepSeek-Prover-V1.5-SFT
+model_name_or_path: "Minsukim/internlm_1_8_sft" #Minsukim/internlm_1_8_sft #openai-community/gpt2 deepseek-ai/DeepSeek-Prover-V1.5-SFT
 model_revision: main
 torch_dtype: bf16
 attn_implementation: flash_attention_2
@@ -20,8 +20,9 @@ gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: False
 per_device_train_batch_size: 1
-hub_model_id: Minsukim/deepseek_custom_workbookdata
-output_dir: /projects/minsu/ATP_checkpoints/deepseek_RLOO_custom_workbookdata
+hub_model_id: Minsukim/RLOO_internlm_CUSTOM_1024_deepseekdata
+output_dir: /projects/minsu/ATP_checkpoints/internlm_RLOO_CUSTOM_1024_deepseekdata
+
 
 log_level: info
 logging_steps: 10
@@ -42,7 +43,7 @@ temperature: 0.9
 lr_scheduler_type: cosine
 max_steps: -1
 #num_train_epochs: 1
-total_episodes: 15000
+total_episodes: 10000
 overwrite_output_dir: true
 remove_unused_columns: true
 report_to:
@@ -54,7 +55,7 @@ warmup_ratio: 0.1
 #rloo
 local_rollout_forward_batch_size: 4   #should be same as rloo_k
 local_mini_batch_size: 4 #should be same as rloo_k
-response_length: 1024 #gpt2: 256, others: 2048
+response_length: 512 #gpt2: 256, others: 2048
 rloo_k: 4
 num_sample_generations: 0
 negative_dropout : true
@@ -62,7 +63,7 @@ dropout_rate: 0.5
 #token_level_kl: true
 
 
-use_peft: true
+use_peft: false
 load_in_4bit: false
 load_in_8bit: false
 lora_r: 16
