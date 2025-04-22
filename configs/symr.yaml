@@ -1,5 +1,5 @@
 # Model arguments
-model_name_or_path: "Minsukim/internlm_1_8_sft_bf16"   #deepseek-ai/DeepSeek-Prover-V1.5-SFT, openai-community/gpt2
+model_name_or_path: "openai-community/gpt2"   #Minsukim/internlm_1_8_sft_bf16 deepseek-ai/DeepSeek-Prover-V1.5-SFT, openai-community/gpt2
 model_revision: main
 torch_dtype: bf16
 attn_implementation: flash_attention_2
@@ -41,8 +41,8 @@ report_to:
 
 save_strategy: "steps"
 save_steps: 100
-save_total_limit: 2
-
+save_total_limit: 1
+hub_strategy: "end"
 
 
 seed: 42
@@ -66,16 +66,17 @@ num_generations: 4
 num_iterations: 2
 use_vllm: true
 vllm_gpu_memory_utilization: 0.5
-max_completion_length: 512   #gpt2: 256, others: 2048 #internlm 512 or 1024
-max_prompt_length: 512
+max_completion_length: 256   #gpt2: 256, others: 2048 #internlm 512 or 1024
 loss_function: "grpo"
 token_level_kl: true
 normalize_advantage: true
 kl_coef: true
 cliprange: 0.2
 whiten_rewards: false
+alpha_advantage: 0.8
 
-negative_dropout : true
+
+negative_dropout : false
 dropout_rate: 0.5
 
 # Hub

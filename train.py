@@ -20,7 +20,7 @@ from transformers import (
 
 )
 
-from modules import CUSTOMTrainer,CustomRLOOTrainer,lean4_value_reward,lean4_grpo_reward,lean4_rloo_reward,lean4_rloo_custom_reward
+from modules import CUSTOMTrainer,CustomRLOOTrainer,lean4_value_reward,lean4_grpo_reward,lean4_rloo_reward,lean4_rloo_custom_reward,NEWCUSTOMTrainer
 from utils import (
     DataArguments,
     H4ArgumentParser,
@@ -288,7 +288,7 @@ def main(model_args,
             peft_config=peft_config
         )
     elif  'custom'==training_type.lower():
-        trainer = CUSTOMTrainer(
+        trainer = NEWCUSTOMTrainer(
             model=model,
             args=training_args,
             processing_class=tokenizer,

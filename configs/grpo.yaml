@@ -1,5 +1,5 @@
 # Model arguments
-model_name_or_path: "deepseek-ai/DeepSeek-Prover-V1.5-SFT" #Minsukim/internlm_1_8_sft #openai-community/gpt2 deepseek-ai/DeepSeek-Prover-V1.5-SFT
+model_name_or_path: "Minsukim/internlm_1_8_sft_bf16" #Minsukim/internlm_1_8_sft_bf16 #openai-community/gpt2 deepseek-ai/DeepSeek-Prover-V1.5-SFT
 model_revision: main
 torch_dtype: bf16
 attn_implementation: flash_attention_2
@@ -27,8 +27,8 @@ logging_strategy: steps
 
 save_strategy: "steps"
 save_steps: 100
-save_total_limit: 2
-
+save_total_limit: 1
+hub_strategy: "end"
 
 
 

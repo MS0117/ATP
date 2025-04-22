@@ -1,6 +1,9 @@
 
 from .trainer import (
-    CUSTOMTrainer,
+    CUSTOMTrainer
+)
+from .new_trainer import (
+    NEWCUSTOMTrainer
 )
 
 from .rloo_trainer import (    CustomRLOOTrainer)
@@ -18,6 +21,7 @@ __all__ = [
     "lean4_grpo_reward",
     "lean4_rloo_reward",
     "lean4_rloo_custom_reward"
-    "CustomRLOOTrainer"
+    "CustomRLOOTrainer",
+    "NEWCUSTOMTrainer"
 
 ]

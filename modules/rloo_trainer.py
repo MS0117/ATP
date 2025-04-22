@@ -19,6 +19,8 @@ from trl.trainer.utils import (
     selective_log_softmax,
     truncate_response,
 )
+from trl.core import masked_mean, masked_whiten
+
 INVALID_LOGPROB = 1.0
 class CustomRLOOTrainer(RLOOTrainer):
     def __init__(self, config, advantage_weight=1.0, **kwargs):
@@ -26,7 +28,7 @@ class CustomRLOOTrainer(RLOOTrainer):
         self.advantage_weight = advantage_weight
         self.negative_dropout=config.negative_dropout
         self.dropout_rate=config.dropout_rate
-
+        self.alpha_advantage= config.alpha_advantage
     def train(self):
         args = self.args
         accelerator = self.accelerator
@@ -245,16 +247,18 @@ class CustomRLOOTrainer(RLOOTrainer):
 
 
                 binary_advantages=advantages.unsqueeze(1)
-                advantages=tactic_advantages+binary_advantages
+                advantages=( 1 - self.alpha_advantage) * tactic_advantages + self.alpha_advantage * binary_advantages
+                advantages = masked_whiten(advantages, ~padding_mask)
                 advantages = torch.masked_fill(advantages, padding_mask, 0.0)
 
 
 
 
                 #dropout
-                binary_mask = (binary_pass_scores != 0).clone()  # pass는 무조건 유지
+
 
                 if self.negative_dropout:
+                    binary_mask = (binary_pass_scores != 0).clone()  # pass는 무조건 유지
                     fail_idx = (binary_pass_scores == 0).nonzero(as_tuple=True)[0]
                     num_keep = int(len(fail_idx) * (1 - self.dropout_rate))
                     if num_keep > 0:
@@ -262,13 +266,13 @@ class CustomRLOOTrainer(RLOOTrainer):
                         keep_idx = fail_idx[perm[:num_keep]]
                         binary_mask[keep_idx] = True
 
-                # 토큰 단위 마스크
-                token_mask = binary_mask.unsqueeze(1)
+                    # 토큰 단위 마스크
+                    token_mask = binary_mask.unsqueeze(1)
 
-                # dropout 적용
-                rlhf_reward = rlhf_reward.flatten()  # [N]
-                #binary_pass_scores = rlhf_reward * binary_mask  # [N]
-                advantages  = advantages  * token_mask  # [N, L]
+                    # dropout 적용
+                    rlhf_reward = rlhf_reward.flatten()  # [N]
+                    #binary_pass_scores = rlhf_reward * binary_mask  # [N]
+                    advantages  = advantages  * token_mask  # [N, L]
 
 
 
