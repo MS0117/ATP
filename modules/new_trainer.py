@@ -25,7 +25,7 @@ from trl.import_utils import is_rich_available, is_vllm_available
 from trl.data_utils import apply_chat_template, is_conversational, maybe_apply_chat_template
 from trl.extras.profiling import profiling_context, profiling_decorator
 from accelerate.utils import broadcast_object_list, gather, gather_object, is_peft_model, set_seed
-from .reward_function import lean4_value_reward,lean4_rloo_custom_reward
+from .reward_function import lean4_value_reward, lean4_rloo_custom_reward
 from trl.core import masked_mean, masked_whiten
 from trl.trainer.utils import (
     generate_model_card,
@@ -170,7 +170,7 @@ class NEWCUSTOMTrainer(GRPOTrainer):
         self.cliprange = args.cliprange
         self.negative_dropout = args.negative_dropout
         self.dropout_rate = args.dropout_rate
-        self.alpha_advantage=args.alpha_advantage
+        self.alpha_advantage = args.alpha_advantage
 
     @profiling_decorator
     def _prepare_inputs(self, inputs: dict[str, Union[torch.Tensor, Any]]) -> dict[str, Union[torch.Tensor, Any]]:
@@ -195,8 +195,10 @@ class NEWCUSTOMTrainer(GRPOTrainer):
         prompts = [x["prompt"] for x in inputs]
         # print("promts",prompts)
         prompts_text = [maybe_apply_chat_template(example, self.processing_class)["prompt"] for example in inputs]
+
         if 'gpt2' in str(self.model_name).lower() or 'llama' in str(self.model_name).lower():
             self.processing_class.pad_token_id = self.processing_class.eos_token_id  # only for gpt2
+
         prompt_inputs = self.processing_class(
             prompts_text, return_tensors="pt", padding=True, padding_side="left",
             add_special_tokens=False)  # pad_token=self.processing_class.eos_token_id
@@ -326,13 +328,15 @@ class NEWCUSTOMTrainer(GRPOTrainer):
                 # print("prompts",prompts)
                 # print("completions",completions)
                 output_reward_func, binary_pass_score = reward_func(prompts=prompts, completions=completions,
-                                                                    processing_class=self.processing_class,max_len=completion_ids.size(1))  # reward feedback generation, lean4_scheduler
+                                                                    processing_class=self.processing_class,
+                                                                    max_len=completion_ids.size(
+                                                                        1))  # reward feedback generation, lean4_scheduler
 
                 """padded_scores tensor([[ 1.,  1.,  , -1., -1.,  1.],
                                         [1.,  1.,  , -1., -1.,  1.]])
                 """
                 binary_pass_score = torch.tensor(binary_pass_score, dtype=torch.float32, device=device)
-                tactic_advantage = output_reward_func.to(dtype=torch.float32, device=device)  # reward
+                tactic_advantage = torch.tensor(output_reward_func, dtype=torch.float32, device=device)  # reward
                 # print("rewards_per_func.size()",rewards_per_func.size())
 
 
@@ -370,11 +374,16 @@ class NEWCUSTOMTrainer(GRPOTrainer):
 
         """
         if self.whiten_rewards:
-            tactic_advantage = masked_whiten(tactic_advantage, mask=value_mask, shift_mean=False)
+            tactic_advantage = masked_whiten(tactic_advantage, mask=completion_mask, shift_mean=False)
             tactic_advantage = tactic_advantage * completion_mask
-        else:
-            tactic_advantage = tactic_advantage * completion_mask
+
         """
+
+        # normalized seperately
+
+        tactic_advantage = masked_whiten(tactic_advantage, mask=completion_mask, shift_mean=False)
+        tactic_advantage = tactic_advantage * completion_mask
+
         # print("rewards_per_func",tactic_advantage.size())
         # print(" self.accelerator.num_processes", self.accelerator.num_processes)
         # print(f"{self.accelerator.process_index}_prompt",prompts)
@@ -526,9 +535,9 @@ class NEWCUSTOMTrainer(GRPOTrainer):
         input_ids = torch.cat([prompt_ids, completion_ids], dim=1)
         attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)
         logits_to_keep = completion_ids.size(1)  # we only need to compute the logits for the completion tokens
-        ref_per_token_logps = inputs["ref_per_token_logps"]
-        tactic_advantages = inputs["tactic_advantages"]
-        binary_score = inputs["binary_score"]
+
+        # ref_per_token_logps = inputs["ref_per_token_logps"]
+
         # print("completion_ids.size",completion_ids.size())
         # print("completion_mask.size",completion_mask.size())
         per_token_logps = self._get_per_token_logps(model, input_ids, attention_mask, logits_to_keep)
@@ -608,9 +617,7 @@ class NEWCUSTOMTrainer(GRPOTrainer):
             tactic_advantages = inputs["tactic_advantages"]
             binary_score = inputs["binary_score"]
 
-            raw_advantages = (
-                                         1 - self.alpha_advantage) * tactic_advantages + self.alpha_advantage * binary_score.unsqueeze(
-                1)
+            raw_advantages = self.alpha_advantage * tactic_advantages + binary_score.unsqueeze(1)
             # When using num_iterations == 1, old_per_token_logps == per_token_logps, so we can skip it's computation (see
             # _generate_and_score_completions) and use per_token_logps.detach() instead.
 
@@ -630,13 +637,15 @@ class NEWCUSTOMTrainer(GRPOTrainer):
 
                 advantages = advantages * token_mask
 
-            advantages = masked_whiten(raw_advantages, completion_mask, shift_mean=True)
+            # advantages = masked_whiten(raw_advantages, completion_mask, shift_mean=True)
+            advantages = raw_advantages
+
             old_per_token_logps = inputs["old_per_token_logps"] if self.num_iterations > 1 else per_token_logps.detach()
             epsilon_high = self.epsilon + 0.08
             coef_1 = torch.exp(per_token_logps - old_per_token_logps)
             coef_2 = torch.clamp(coef_1, 1 - self.epsilon, 1 + epsilon_high)
-            per_token_loss1 = coef_1 * advantages.unsqueeze(1)
-            per_token_loss2 = coef_2 * advantages.unsqueeze(1)
+            per_token_loss1 = coef_1 * advantages
+            per_token_loss2 = coef_2 * advantages
             per_token_loss = -torch.min(per_token_loss1, per_token_loss2)
             if self.beta != 0.0:
                 per_token_loss = per_token_loss + self.beta * per_token_kl

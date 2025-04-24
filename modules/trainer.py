@@ -717,7 +717,7 @@ class CUSTOMTrainer(GRPOTrainer):
             tactic_advantages = inputs["tactic_advantages"]
             binary_score = inputs["binary_score"]
 
-            raw_advantages = ( 1 - self.alpha_advantage) * tactic_advantages + self.alpha_advantage * binary_score.unsqueeze(1)
+            raw_advantages = (1-self.alpha_advantage) * tactic_advantages + self.alpha_advantage*binary_score.unsqueeze(1)
             # When using num_iterations == 1, old_per_token_logps == per_token_logps, so we can skip it's computation (see
             # _generate_and_score_completions) and use per_token_logps.detach() instead.
 

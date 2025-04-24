@@ -14,7 +14,7 @@ bf16: true
 do_eval: false
 tf32: true
 torch_compile: true
-optim: paged_adamw_8bit
+optim: paged_adamw_8bit   #adamw_torch_fused
 gradient_accumulation_steps: 8
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:

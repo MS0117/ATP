@@ -14,7 +14,7 @@ bf16: true
 do_eval: false
 tf32: true
 torch_compile: false
-optim: paged_adamw_8bit
+optim: paged_adamw_8bit   #adamw_torch_fused
 gradient_accumulation_steps: 4
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
@@ -28,7 +28,7 @@ log_level: info
 logging_steps: 10
 logging_strategy: steps
 
-save_strategy: "steps"  #rloo: "no"
+save_strategy: "no" #rloo: "no"
 save_steps: 100
 save_total_limit: 1
 hub_strategy: "end"

@@ -247,8 +247,10 @@ class CustomRLOOTrainer(RLOOTrainer):
 
 
                 binary_advantages=advantages.unsqueeze(1)
+                tactic_advantages = masked_whiten(tactic_advantages, mask=~padding_mask, shift_mean=False)
+                tactic_advantages = torch.masked_fill(tactic_advantages, padding_mask, 0.0)
                 advantages=( 1 - self.alpha_advantage) * tactic_advantages + self.alpha_advantage * binary_advantages
-                advantages = masked_whiten(advantages, ~padding_mask)
+
                 advantages = torch.masked_fill(advantages, padding_mask, 0.0)
 
 

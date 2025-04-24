@@ -1,5 +1,5 @@
 # Model arguments
-model_name_or_path: "openai-community/gpt2"   #Minsukim/internlm_1_8_sft_bf16 deepseek-ai/DeepSeek-Prover-V1.5-SFT, openai-community/gpt2
+model_name_or_path: "Minsukim/internlm_1_8_sft_bf16"   #Minsukim/internlm_1_8_sft_bf16 deepseek-ai/DeepSeek-Prover-V1.5-SFT, openai-community/gpt2
 model_revision: main
 torch_dtype: bf16
 attn_implementation: flash_attention_2
@@ -14,13 +14,13 @@ bf16: true
 do_eval: false
 tf32: true
 torch_compile: true
-optim: paged_adamw_8bit
+optim: paged_adamw_8bit   #adamw_torch_fused
 gradient_accumulation_steps: 8
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: true
-hub_model_id: Minsukim/CUSTOM_internlm__512_deepseekdata
-output_dir: /projects/minsu/ATP_checkpoints/internlm_custom_512_deepseekdata
+hub_model_id: Minsukim/CUSTOM_internlm2_rtx_512_deepseekdata
+output_dir: /projects/minsu/ATP_checkpoints/CUSTOM_internlm2_rtx_512_deepseekdata
 
 
 log_level: info
@@ -56,8 +56,10 @@ lora_alpha: 16
 
 
 beta: 0.04
-learning_rate: 1.0e-05
+learning_rate: 1.0e-05 #1.0e-05 4.0e-07
 temperature: 0.9
+
+
 
 # GRPO default setting
 reward_type: 'lean'
@@ -66,14 +68,14 @@ num_generations: 4
 num_iterations: 2
 use_vllm: true
 vllm_gpu_memory_utilization: 0.5
-max_completion_length: 256   #gpt2: 256, others: 2048 #internlm 512 or 1024
+max_completion_length: 512   #gpt2: 256, others: 2048 #internlm 512 or 1024
 loss_function: "grpo"
 token_level_kl: true
 normalize_advantage: true
 kl_coef: true
 cliprange: 0.2
 whiten_rewards: false
-alpha_advantage: 0.8
+alpha_advantage: 0.2
 
 
 negative_dropout : false

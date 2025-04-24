@@ -808,7 +808,7 @@ def lean4_value_reward(prompts, completions, processing_class):
     #print("texts1:",texts)
     #print("type",type(texts[0]))
     #print("\n\n")
-    lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=60, timeout=15,  memory_limit=10, name='verifier',extra_args=AttrDict(allTactics=True))
+    lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=45, timeout=15,  memory_limit=10, name='verifier',extra_args=AttrDict(allTactics=True))
     #print("texts2:", texts)
     extracted_code=[extract_code(result) for result in texts]
     request_id_list = lean4_scheduler.submit_all_request(extracted_code)
@@ -841,7 +841,7 @@ def lean4_grpo_reward(prompts, completions, **kwargs):
     #print("texts1:",texts)
     #print("type",type(texts[0]))
     #print("\n\n")
-    lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=60, timeout=15,  memory_limit=10, name='verifier',extra_args=AttrDict(allTactics=True))
+    lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=45, timeout=15,  memory_limit=10, name='verifier',extra_args=AttrDict(allTactics=True))
     #print("texts2:", texts)
     extracted_code=[extract_code(result) for result in texts]
     request_id_list = lean4_scheduler.submit_all_request(extracted_code)
@@ -863,7 +863,7 @@ def lean4_rloo_reward(texts, **kwargs):
     #print("texts1:",texts)
     #print("type",type(texts[0]))
     #print("\n\n")
-    lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=60, timeout=15,  memory_limit=10, name='verifier',extra_args=AttrDict(allTactics=True))
+    lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=45, timeout=15,  memory_limit=10, name='verifier',extra_args=AttrDict(allTactics=True))
     #print("texts2:", texts)
     extracted_code=[extract_code(result) for result in texts]
     request_id_list = lean4_scheduler.submit_all_request(extracted_code)
@@ -881,7 +881,7 @@ def lean4_rloo_reward(texts, **kwargs):
 def lean4_rloo_custom_reward(prompts, completions, processing_class,max_len):
     texts = [p + c for p, c in zip(prompts, completions)]
 
-    lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=60, timeout=15, memory_limit=10, name='verifier',
+    lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=45, timeout=15, memory_limit=10, name='verifier',
                                            extra_args=AttrDict(allTactics=True))
     # print("texts2:", texts)
     extracted_code = [extract_code(result) for result in texts]
