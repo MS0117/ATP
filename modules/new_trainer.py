@@ -381,7 +381,7 @@ class NEWCUSTOMTrainer(GRPOTrainer):
 
         # normalized seperately
 
-        tactic_advantage = masked_whiten(tactic_advantage, mask=completion_mask, shift_mean=False)
+        #tactic_advantage = masked_whiten(tactic_advantage, mask=completion_mask, shift_mean=False)
         tactic_advantage = tactic_advantage * completion_mask
 
         # print("rewards_per_func",tactic_advantage.size())

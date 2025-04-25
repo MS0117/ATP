@@ -172,6 +172,7 @@ class CUSTOMTrainer(GRPOTrainer):
         self.negative_dropout=args.negative_dropout
         self.dropout_rate=args.dropout_rate
         self.alpha_advantage=args.alpha_advantage
+
     @profiling_decorator
     def _prepare_inputs(self, inputs: dict[str, Union[torch.Tensor, Any]]) -> dict[str, Union[torch.Tensor, Any]]:
         mode = "eval" if self.control.should_evaluate else "train"
@@ -407,7 +408,7 @@ class CUSTOMTrainer(GRPOTrainer):
                 #print("prompts",prompts)
                 #print("completions",completions)
                 output_reward_func,binary_pass_score = reward_func(prompts=prompts, completions=completions,
-                                                 processing_class=self.processing_class)  # reward feedback generation, lean4_scheduler
+                                                 processing_class=self.processing_class,num_generation=self.num_generations)  # reward feedback generation, lean4_scheduler
 
                 """padded_scores tensor([[ 1.,  1.,  , -1., -1.,  1.],
                                         [1.,  1.,  , -1., -1.,  1.]])
@@ -449,13 +450,9 @@ class CUSTOMTrainer(GRPOTrainer):
         advantages = advantages[process_slice]
         """
 
-        """
-        if self.whiten_rewards:
-            tactic_advantage = masked_whiten(tactic_advantage, mask=value_mask, shift_mean=False)
-            tactic_advantage = tactic_advantage * completion_mask
-        else:
-            tactic_advantage = tactic_advantage * completion_mask
-        """
+
+        tactic_advantage = tactic_advantage * completion_mask
+
         #print("rewards_per_func",tactic_advantage.size())
         #print(" self.accelerator.num_processes", self.accelerator.num_processes)
         #print(f"{self.accelerator.process_index}_prompt",prompts)
@@ -704,7 +701,6 @@ class CUSTOMTrainer(GRPOTrainer):
             loss = pg_loss
 
 
-
         elif 'grpo' in self.loss_function.lower():  # baseline?
             # Compute the KL divergence between the model and the reference model
             if self.beta != 0.0:
@@ -717,7 +713,7 @@ class CUSTOMTrainer(GRPOTrainer):
             tactic_advantages = inputs["tactic_advantages"]
             binary_score = inputs["binary_score"]
 
-            raw_advantages = (1-self.alpha_advantage) * tactic_advantages + self.alpha_advantage*binary_score.unsqueeze(1)
+            raw_advantages = self.alpha_advantage * tactic_advantages + binary_score.unsqueeze(1)
             # When using num_iterations == 1, old_per_token_logps == per_token_logps, so we can skip it's computation (see
             # _generate_and_score_completions) and use per_token_logps.detach() instead.
 
@@ -725,7 +721,7 @@ class CUSTOMTrainer(GRPOTrainer):
             # pass는 무조건 유지
             if self.negative_dropout:
                 binary_mask = (binary_score != 0).clone()
-                fail_idx = ( binary_score== 0).nonzero(as_tuple=True)[0]
+                fail_idx = (binary_score == 0).nonzero(as_tuple=True)[0]
                 num_keep = int(len(fail_idx) * (1 - self.dropout_rate))
                 if num_keep > 0:
                     perm = torch.randperm(len(fail_idx), device=binary_score.device)
@@ -735,19 +731,22 @@ class CUSTOMTrainer(GRPOTrainer):
                 # 토큰 단위 마스크
                 token_mask = binary_mask.unsqueeze(1)
 
-                advantages= advantages * token_mask
+                advantages = advantages * token_mask
 
-            advantages = masked_whiten(raw_advantages, completion_mask, shift_mean=True)
+            # advantages = masked_whiten(raw_advantages, completion_mask, shift_mean=True)
+            advantages = raw_advantages
+
             old_per_token_logps = inputs["old_per_token_logps"] if self.num_iterations > 1 else per_token_logps.detach()
             epsilon_high = self.epsilon + 0.08
             coef_1 = torch.exp(per_token_logps - old_per_token_logps)
-            coef_2 = torch.clamp(coef_1, 1 - self.epsilon,1 + epsilon_high)
-            per_token_loss1 = coef_1 * advantages.unsqueeze(1)
-            per_token_loss2 = coef_2 * advantages.unsqueeze(1)
+            coef_2 = torch.clamp(coef_1, 1 - self.epsilon, 1 + epsilon_high)
+            per_token_loss1 = coef_1 * advantages
+            per_token_loss2 = coef_2 * advantages
             per_token_loss = -torch.min(per_token_loss1, per_token_loss2)
             if self.beta != 0.0:
                 per_token_loss = per_token_loss + self.beta * per_token_kl
             loss = (per_token_loss * completion_mask).sum() / completion_mask.sum()
+
 
 
 

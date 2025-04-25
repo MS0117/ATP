@@ -331,6 +331,7 @@ class CUSTOMConfig(trl.GRPOConfig):
     whiten_rewards :Optional[bool]=field(default=True)
     negative_dropout :Optional[bool]=field(default=False)
     dropout_rate: Optional[float]=field(default=0.5)
+    alpha_advantage: Optional[float]=field(default=0.5)
 
 @dataclass
 class GRPOConfig(trl.GRPOConfig):
@@ -369,4 +370,6 @@ class CUSTOMRLOOConfig(trl.RLOOConfig):
     )
     negative_dropout :Optional[bool]=field(default=False)
     dropout_rate: Optional[float]=field(default=0.5)
+    alpha_advantage: Optional[float]=field(default=0.5)
+
 
