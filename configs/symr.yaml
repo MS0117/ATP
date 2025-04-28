@@ -1,5 +1,5 @@
 # Model arguments
-model_name_or_path: "Minsukim/internlm_1_8_sft_bf16"   #Minsukim/internlm_1_8_sft_bf16 deepseek-ai/DeepSeek-Prover-V1.5-SFT, openai-community/gpt2
+model_name_or_path: "Minsukim/internlm_1_8_sft_bf16_epoch1"  #Minsukim/internlm_1_8_sft_bf16_epoch1  #Minsukim/internlm_1_8_sft_bf16 deepseek-ai/DeepSeek-Prover-V1.5-SFT, openai-community/gpt2
 model_revision: main
 torch_dtype: bf16
 attn_implementation: flash_attention_2
@@ -19,8 +19,8 @@ gradient_accumulation_steps: 8
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: true
-hub_model_id: Minsukim/CUSTOM_internlm2_rtx_512_deepseekdata
-output_dir: /projects/minsu/ATP_checkpoints/CUSTOM_internlm2_rtx_512_deepseekdata
+hub_model_id: Minsukim/CUSTOM_internlm2_value_custom_1epoch_rtx_512_deepseekdata
+output_dir: /projects/minsu/ATP_checkpoints/CUSTOM_internlm2_value_custom_1epoch_rtx_512_deepseekdata
 
 
 log_level: info

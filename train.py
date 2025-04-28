@@ -288,7 +288,7 @@ def main(model_args,
             peft_config=peft_config
         )
     elif  'custom'==training_type.lower():
-        trainer = NEWCUSTOMTrainer(
+        trainer = CUSTOMTrainer(
             model=model,
             args=training_args,
             processing_class=tokenizer,

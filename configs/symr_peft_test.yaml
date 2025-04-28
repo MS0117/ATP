@@ -1,70 +1,87 @@
 # Model arguments
-model_name_or_path: "openai-community/gpt2" #deepseek-ai/DeepSeek-Prover-V1.5-SFT, deepseek-ai/deepseek-coder-1.3b-base openai-community/gpt2 ContextualAI/Llama-200M
+model_name_or_path: "openai-community/gpt2"   #Minsukim/internlm_1_8_sft_bf16 deepseek-ai/DeepSeek-Prover-V1.5-SFT, openai-community/gpt2
 model_revision: main
-torch_dtype: bfloat16
+torch_dtype: bf16
 attn_implementation: flash_attention_2
-
+trust_remote_code: true
 # Data training arguments
-dataset_name: minif2f
+dataset_name: deepseek
 dataset_split: train
 preprocessing_num_workers: 24
 
-#  trainer config
+# SFT trainer config
 bf16: true
 do_eval: false
 tf32: true
 torch_compile: true
-optim: paged_adamw_8bit
-gradient_accumulation_steps: 16
+optim: paged_adamw_8bit   #adamw_torch_fused
+gradient_accumulation_steps: 8
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: true
-hub_model_id: Minsukim/test_custom_gpt
-output_dir: /projects/minsu/ATP_checkpoints/test
-learning_rate: 1.0e-05
+hub_model_id: Minsukim/CUSTOM_internlm2_rtx_512_deepseekdata
+output_dir: /projects/minsu/ATP_checkpoints/CUSTOM_internlm2_rtx_512_deepseekdata
+
+
 log_level: info
-logging_steps: 5
+logging_steps: 10
 logging_strategy: steps
 lr_scheduler_type: cosine
 max_steps: -1
 num_train_epochs: 1
 overwrite_output_dir: true
-per_device_train_batch_size: 32
+per_device_train_batch_size: 8
 remove_unused_columns: true
 report_to:
 - tensorboard
 - wandb
 
+
+#resume_from_checkpoint: true
+
 save_strategy: "steps"
-save_steps: 150
-save_total_limit: 2
-#resume_from_checkpoint: null
+save_steps: 100
+save_total_limit: 1
+hub_strategy: "end"
+
 
 seed: 42
 warmup_ratio: 0.1
-use_peft: true
+use_peft: false
 load_in_4bit: false
 load_in_8bit: false
-lora_r: 32
-lora_alpha: 32
+lora_r: 16
+lora_alpha: 16
+
+
+
+beta: 0.04
+learning_rate: 1.0e-05 #1.0e-05 4.0e-07
+temperature: 0.9
+
 
 
 # GRPO default setting
 reward_type: 'lean'
-beta: 0.04
-num_generations: 8
-num_iterations: 4
+
+num_generations: 4
+num_iterations: 2
 use_vllm: true
 vllm_gpu_memory_utilization: 0.5
+max_completion_length: 512   #gpt2: 256, others: 2048 #internlm 512 or 1024
 loss_function: "grpo"
 token_level_kl: true
 normalize_advantage: true
 kl_coef: true
 cliprange: 0.2
-whiten_rewards: true
-max_completion_length: 256    #gpt2: 256, others: 2048
+whiten_rewards: false
+alpha_advantage: 0.2
+
+
+negative_dropout : false
+dropout_rate: 0.5
+
 # Hub
 push_to_hub: true
 hub_private_repo: true
-wandb_project: ATP
 wandb_entity: kimminsu

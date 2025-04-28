@@ -758,6 +758,446 @@ def compute_token_level_advantages(prompts, completions, outputs_list, tokenizer
     return all_token_scores, all_token_texts, binary_pass_score,
 
 
+
+
+
+
+
+
+
+
+
+
+
+##grouped_mean_baseline
+
+
+
+def grouped_compute_returns_no_split(full_text, intervals, tokenizer, mean, gamma=0.9, prompt_len=0):
+    """
+    Given full_text and a list of absolute intervals (start, end, label),
+    assign a fixed immediate reward = label for each interval,
+    discount them backward, and compute baseline and advantages.
+    """
+    intervals = deduplicate_intervals(intervals)
+    intervals = sorted(intervals, key=lambda x: x[0])
+    # For fixed reward, each interval's reward is simply its label.
+    rewards = [label for (start, end, label) in intervals]
+    discounted = []
+    running = 0.0
+    for r in reversed(rewards):
+        running = r + gamma * running
+        discounted.insert(0, running)
+        print("running ", type(running))
+
+
+    advantages = [ d - mean for d in discounted]
+
+
+
+    results = []
+    for (start, end, label), ret, adv in zip(intervals, discounted, advantages):
+        results.append({
+            "start": start,
+            "end": end,
+            "label": label,
+            "immediate_reward": label,
+            "discounted_return": ret,
+            "advantage": adv
+        })
+    results = sorted(results, key=lambda x: (0 if x["label"] == 1 else 1, x["start"]))
+    return results,
+
+
+
+
+def grouped_compute_returns_tree(
+        full_text: str,
+        intervals: List[Interval],
+        tokenizer,
+        mean,
+        gamma: float = 0.9,
+        prompt_len: int = 0,
+):
+    """
+    Like compute_returns_no_split, but reward is propagated along the
+    containment tree instead of a flat, left‑to‑right timeline.
+    """
+    # 1. deduplicate & build the tree ----------------------------------------
+    intervals = deduplicate_intervals(intervals)
+    roots, all_nodes = build_interval_tree(intervals)
+
+    # 2. tree‑discounted returns --------------------------------------------
+    for r in roots:
+        _dfs_compute_returns(r, gamma)
+
+    # 3. baseline & advantages ----------------------------------------------
+
+    returns = [n["return"] for n in all_nodes]
+    results = []
+    if not returns:  # <- nothing to do
+        return ([],)  # (empty results, baseline 0)
+
+
+    for n in all_nodes:
+        results.append(
+            {
+                "start": n["start"],
+                "end": n["end"],
+                "label": n["label"],
+                "immediate_reward": n["label"],
+                "discounted_tree_return": n["return"],
+                "advantage": n["return"] - mean,
+            }
+        )
+
+    # (Optional) sort so +1 labels first, then by start
+    results.sort(key=lambda x: (0 if x["label"] == 1 else 1, x["start"]))
+
+    return (results,)
+
+
+def grouped_compute_token_level_advantages(prompts, completions, outputs_list, tokenizer, extracted_codes, type, gamma,num_generation):
+    """
+    Process each sample (prompt, completion, out_data, extracted_code) individually.
+    Returns lists (one per sample) of token_scores, token_texts, token_advantages, intervals_info, and baseline.
+    """
+    all_token_scores = []
+    all_token_texts = []
+
+    binary_pass_score = [1 if out["complete"] == "True" else 0 for out in outputs_list]
+
+    n = len(binary_pass_score)
+    num_groups = math.ceil(n / num_generation)  # works even if it doesn't divide evenly
+
+    group_means = [
+        float(np.mean(binary_pass_score[g * num_generation: (g + 1) * num_generation]))
+        for g in range(num_groups)
+    ]
+
+    #total = sum(binary_pass_score)
+    #loo_means = [(total - s) / (n - 1) for s in binary_pass_score]
+
+    for idx,(prompt, completion, out_data, snippet) in enumerate(zip(prompts, completions, outputs_list, extracted_codes)):
+
+        baseline = group_means[idx // num_generation]
+
+
+        full_text = prompt + completion
+        # Use the provided snippet (ensure it's a string)
+        prompt_len = len(prompt)
+        if not isinstance(snippet, str):
+            continue  # or raise an error
+        # 1. Gather intervals from out_data (in snippet coordinates)
+
+        if type == 'advantage':
+            snippet_intervals = gather_intervals_no_split(snippet,
+                                                          out_data)  # get the position of tactic and error in the extracted_code ex) error1=(1,10, -1), tactic1= (26,57,1)
+            # 2. (Optionally merge tactic intervals; here we assume no splitting is needed)
+            # For simplicity, we assume out_data gives the intervals correctly.
+            abs_intervals = convert_snippet_intervals_to_full_text(prompt, completion, snippet,
+                                                                   snippet_intervals)  # get the position of tactic and error in the full text (prompt+completion)
+
+            intervals_info, = grouped_compute_returns_no_split(full_text, abs_intervals, tokenizer, baseline,gamma=gamma,
+                                                       prompt_len=prompt_len)
+
+        if type == 'tree':
+            snippet_intervals = gather_intervals_no_split(snippet,
+                                                          out_data)  # get the position of tactic and error in the extracted_code ex) error1=(1,10, -1), tactic1= (26,57,1)
+            # 2. (Optionally merge tactic intervals; here we assume no splitting is needed)
+            # For simplicity, we assume out_data gives the intervals correctly.
+            abs_intervals = convert_snippet_intervals_to_full_text(prompt, completion, snippet,
+                                                                   snippet_intervals)  # get the position of tactic and error in the full text (prompt+completion)
+
+            intervals_info, = grouped_compute_returns_tree(full_text, abs_intervals, tokenizer,baseline, gamma=gamma,
+                                                   prompt_len=prompt_len)
+            # if len(intervals_info)==0:
+            #    print("no interval",out_data)
+            #    print("no interbval snippet", snippet)
+            # 3. Tokenize full_text
+            # print("intervals_info", intervals_info)
+        encoded = tokenizer(full_text, return_offsets_mapping=True, add_special_tokens=False)
+        offsets = encoded["offset_mapping"]
+        input_ids = encoded["input_ids"]
+        # 4. Build pos_scores at character level
+        pos_scores = [0] * len(full_text)
+        snippet_pos_scores = [0] * len(snippet)
+
+        token_scores = []
+        token_texts = []
+
+        if type == 'reward':
+            if "tactics" in out_data and out_data["tactics"]:
+                mark_char_scores_snippet(snippet_pos_scores, snippet, out_data["tactics"], default_to_error=False)
+            if "errors" in out_data and out_data["errors"]:
+                mark_char_scores_snippet(snippet_pos_scores, snippet, out_data["errors"], default_to_error=True)
+            # 5. Compute token-level average score (only for tokens in completion)
+
+            # 6. compute token level reward
+            snippet_index = full_text.find(snippet)
+            if snippet_index != -1:
+                for idx in range(len(snippet)):
+                    # Copy snippet_pos_scores into pos_scores
+                    if 0 <= snippet_index + idx < len(pos_scores):
+                        # If snippet_pos_scores[idx] == -1, that overrides
+                        # a +1. If pos_scores is already -1, keep it -1, etc.
+                        # We'll do: error overrides tactic if both exist.
+                        if pos_scores[snippet_index + idx] == -1:
+                            continue
+                        pos_scores[snippet_index + idx] = snippet_pos_scores[idx]
+
+            else:
+                # If snippet wasn't found, we just won't mark anything.
+                # Or you could log a warning, etc.
+                # print("no matching")
+                pass
+
+        # 7. Assign advantages to tokens based on intervals_info
+        elif type == 'advantage' or type == 'tree':
+            character_advantages = assign_advantage_to_tokens(full_text, offsets, snippet, intervals_info, prompt_len)
+
+        for tid, (start, end) in zip(input_ids, offsets):
+            if start >= prompt_len:
+                if type == 'reward':
+                    slice_scores = pos_scores[start:end]
+                    avg = sum(slice_scores) / len(slice_scores) if slice_scores else 0.0
+                    token_scores.append(avg)
+
+
+                elif type == 'advantage' or type == 'tree':
+                    slice_adv_scores = character_advantages[start:end]
+                    avg = sum(slice_adv_scores) / len(slice_adv_scores) if slice_adv_scores else 0.0
+                    token_scores.append(avg)
+                token_texts.append(full_text[start:end])
+
+
+        all_token_scores.append(token_scores)
+        all_token_texts.append(token_texts)
+
+    return all_token_scores, all_token_texts, binary_pass_score,
+
+
+
+
+
+
+
+
+
+
+
+#score as value
+def value_compute_returns_no_split(full_text, intervals, tokenizer, mean, gamma=0.9, prompt_len=0):
+    """
+    Given full_text and a list of absolute intervals (start, end, label),
+    assign a fixed immediate reward = label for each interval,
+    discount them backward, and compute baseline and advantages.
+    """
+    intervals = deduplicate_intervals(intervals)
+    intervals = sorted(intervals, key=lambda x: x[0])
+    # For fixed reward, each interval's reward is simply its label.
+    rewards = [label for (start, end, label) in intervals]
+    discounted = []
+    running = 0.0
+    for r in reversed(rewards):
+        running = r + gamma * running
+        discounted.insert(0, running)
+        print("running ", type(running))
+
+
+    advantages = [ d - mean for d in discounted]
+
+
+
+    results = []
+    for (start, end, label), ret, adv in zip(intervals, discounted, advantages):
+        results.append({
+            "start": start,
+            "end": end,
+            "label": label,
+            "immediate_reward": label,
+            "discounted_return": ret,
+            "advantage": adv
+        })
+    results = sorted(results, key=lambda x: (0 if x["label"] == 1 else 1, x["start"]))
+    return results,
+
+
+
+
+def value_compute_returns_tree(
+        full_text: str,
+        intervals: List[Interval],
+        tokenizer,
+        mean,
+        gamma: float = 0.9,
+        prompt_len: int = 0,
+):
+    """
+    Like compute_returns_no_split, but reward is propagated along the
+    containment tree instead of a flat, left‑to‑right timeline.
+    """
+    # 1. deduplicate & build the tree ----------------------------------------
+    intervals = deduplicate_intervals(intervals)
+    roots, all_nodes = build_interval_tree(intervals)
+
+    # 2. tree‑discounted returns --------------------------------------------
+    for r in roots:
+        _dfs_compute_returns(r, gamma)
+
+    # 3. baseline & advantages ----------------------------------------------
+
+    values = [n["label"] for n in all_nodes]
+    results = []
+    if not values:  # <- nothing to do
+        return ([],)  # (empty results, baseline 0)
+
+    baseline= np.mean(values)
+
+    for n in all_nodes:
+        results.append(
+            {
+                "start": n["start"],
+                "end": n["end"],
+                "label": n["label"],
+                "immediate_reward": n["label"],
+                "discounted_tree_return": n["return"],
+                "advantage": n["label"] - baseline,
+            }
+        )
+
+    # (Optional) sort so +1 labels first, then by start
+    results.sort(key=lambda x: (0 if x["label"] == 1 else 1, x["start"]))
+
+    return (results,)
+
+
+def value_compute_token_level_advantages(prompts, completions, outputs_list, tokenizer, extracted_codes, type, gamma,num_generation):
+    """
+    Process each sample (prompt, completion, out_data, extracted_code) individually.
+    Returns lists (one per sample) of token_scores, token_texts, token_advantages, intervals_info, and baseline.
+    """
+    all_token_scores = []
+    all_token_texts = []
+
+    binary_pass_score = [1 if out["complete"] == "True" else 0 for out in outputs_list]
+
+    n = len(binary_pass_score)
+    num_groups = math.ceil(n / num_generation)  # works even if it doesn't divide evenly
+
+    group_means = [
+        float(np.mean(binary_pass_score[g * num_generation: (g + 1) * num_generation]))
+        for g in range(num_groups)
+    ]
+
+    #total = sum(binary_pass_score)
+    #loo_means = [(total - s) / (n - 1) for s in binary_pass_score]
+
+    for idx,(prompt, completion, out_data, snippet) in enumerate(zip(prompts, completions, outputs_list, extracted_codes)):
+
+        baseline = group_means[idx // num_generation]
+
+
+        full_text = prompt + completion
+        # Use the provided snippet (ensure it's a string)
+        prompt_len = len(prompt)
+        if not isinstance(snippet, str):
+            continue  # or raise an error
+        # 1. Gather intervals from out_data (in snippet coordinates)
+
+        if type == 'advantage':
+            snippet_intervals = gather_intervals_no_split(snippet,
+                                                          out_data)  # get the position of tactic and error in the extracted_code ex) error1=(1,10, -1), tactic1= (26,57,1)
+            # 2. (Optionally merge tactic intervals; here we assume no splitting is needed)
+            # For simplicity, we assume out_data gives the intervals correctly.
+            abs_intervals = convert_snippet_intervals_to_full_text(prompt, completion, snippet,
+                                                                   snippet_intervals)  # get the position of tactic and error in the full text (prompt+completion)
+
+            intervals_info, = value_compute_returns_no_split(full_text, abs_intervals, tokenizer, baseline,gamma=gamma,
+                                                       prompt_len=prompt_len)
+
+        if type == 'tree':
+            snippet_intervals = gather_intervals_no_split(snippet,
+                                                          out_data)  # get the position of tactic and error in the extracted_code ex) error1=(1,10, -1), tactic1= (26,57,1)
+            # 2. (Optionally merge tactic intervals; here we assume no splitting is needed)
+            # For simplicity, we assume out_data gives the intervals correctly.
+            abs_intervals = convert_snippet_intervals_to_full_text(prompt, completion, snippet,
+                                                                   snippet_intervals)  # get the position of tactic and error in the full text (prompt+completion)
+
+            intervals_info, = value_compute_returns_tree(full_text, abs_intervals, tokenizer,baseline, gamma=gamma,
+                                                   prompt_len=prompt_len)
+            # if len(intervals_info)==0:
+            #    print("no interval",out_data)
+            #    print("no interbval snippet", snippet)
+            # 3. Tokenize full_text
+            # print("intervals_info", intervals_info)
+        encoded = tokenizer(full_text, return_offsets_mapping=True, add_special_tokens=False)
+        offsets = encoded["offset_mapping"]
+        input_ids = encoded["input_ids"]
+        # 4. Build pos_scores at character level
+        pos_scores = [0] * len(full_text)
+        snippet_pos_scores = [0] * len(snippet)
+
+        token_scores = []
+        token_texts = []
+
+        if type == 'reward':
+            if "tactics" in out_data and out_data["tactics"]:
+                mark_char_scores_snippet(snippet_pos_scores, snippet, out_data["tactics"], default_to_error=False)
+            if "errors" in out_data and out_data["errors"]:
+                mark_char_scores_snippet(snippet_pos_scores, snippet, out_data["errors"], default_to_error=True)
+            # 5. Compute token-level average score (only for tokens in completion)
+
+            # 6. compute token level reward
+            snippet_index = full_text.find(snippet)
+            if snippet_index != -1:
+                for idx in range(len(snippet)):
+                    # Copy snippet_pos_scores into pos_scores
+                    if 0 <= snippet_index + idx < len(pos_scores):
+                        # If snippet_pos_scores[idx] == -1, that overrides
+                        # a +1. If pos_scores is already -1, keep it -1, etc.
+                        # We'll do: error overrides tactic if both exist.
+                        if pos_scores[snippet_index + idx] == -1:
+                            continue
+                        pos_scores[snippet_index + idx] = snippet_pos_scores[idx]
+
+            else:
+                # If snippet wasn't found, we just won't mark anything.
+                # Or you could log a warning, etc.
+                # print("no matching")
+                pass
+
+        # 7. Assign advantages to tokens based on intervals_info
+        elif type == 'advantage' or type == 'tree':
+            character_advantages = assign_advantage_to_tokens(full_text, offsets, snippet, intervals_info, prompt_len)
+
+        for tid, (start, end) in zip(input_ids, offsets):
+            if start >= prompt_len:
+                if type == 'reward':
+                    slice_scores = pos_scores[start:end]
+                    avg = sum(slice_scores) / len(slice_scores) if slice_scores else 0.0
+                    token_scores.append(avg)
+
+
+                elif type == 'advantage' or type == 'tree':
+                    slice_adv_scores = character_advantages[start:end]
+                    avg = sum(slice_adv_scores) / len(slice_adv_scores) if slice_adv_scores else 0.0
+                    token_scores.append(avg)
+                token_texts.append(full_text[start:end])
+
+
+        all_token_scores.append(token_scores)
+        all_token_texts.append(token_texts)
+
+    return all_token_scores, all_token_texts, binary_pass_score,
+
+
+
+
+
+
+
+
 def list_of_lists_to_padded_tensor(list_of_lists, padding_value=0):
     """
     Convert list of variable-length lists to a padded 2D Tensor
@@ -1061,9 +1501,10 @@ def main():
         prompts, completions, outputs_list, tokenizer, extracted_code, "advantage", 0.8
     )
 
+
     # tree-level scores
-    all_tree_scores, all_tree_texts, binary = compute_token_level_advantages(
-        prompts, completions, outputs_list, tokenizer, extracted_code, "tree", 0.8
+    all_tree_scores, all_tree_texts, binary = value_compute_token_level_advantages(
+        prompts, completions, outputs_list, tokenizer, extracted_code, "tree", 0.8,4
     )
 
     # Convert to a padded tensor if desired
@@ -1072,7 +1513,7 @@ def main():
     # Print out a summary
     tree_padded_token_scores = list_of_lists_to_padded_tensor(all_tree_scores, padding_value=0)
 
-    """
+
 
     for i, (scores, texts) in enumerate(zip(all_token_scores, all_token_texts)):
         print(f"--- Completion #{i} ---")
@@ -1106,7 +1547,7 @@ def main():
         # Or just look at the padded row
         # print("Tactic_Padded row for this completion =>", padded_tactic_scores[i].tolist())
         # print()
-    """
+
     def compare_token_scores(scores1, scores2, tol=1e-6):
         """
         Compare two lists of token scores (lists of lists).
