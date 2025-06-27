@@ -1,5 +1,5 @@
 # Model arguments
-model_name_or_path: kfdong/STP_model_Lean_0320 #"Minsukim/DeepSeek-Prover-V1.5-7B_sft_stp_500k" #"deepseek-ai/DeepSeek-Prover-V2-7B"  # kfdong/STP_model_Lean_0320 Goedel-LM/Goedel-Prover-SFT Minsukim/internlm_1_8_sft_bf16_epoch1  #Minsukim/internlm_1_8_sft_bf16 deepseek-ai/DeepSeek-Prover-V2-7B, openai-community/gpt2
+model_name_or_path: Minsukim/DeepSeek-Prover-V1.5-7B_sft_stp_500k #"Minsukim/DeepSeek-Prover-V1.5-7B_sft_stp_500k" #"deepseek-ai/DeepSeek-Prover-V2-7B"  # kfdong/STP_model_Lean_0320 Goedel-LM/Goedel-Prover-SFT Minsukim/internlm_1_8_sft_bf16_epoch1  #Minsukim/internlm_1_8_sft_bf16 deepseek-ai/DeepSeek-Prover-V2-7B, openai-community/gpt2
 model_revision: main
 torch_dtype: bf16
 attn_implementation: flash_attention_2
@@ -19,8 +19,8 @@ gradient_accumulation_steps: 8
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: true
-hub_model_id: Minsukim/stp_grpo_custom_only_potential_exponential_step_positive_1.0_last_groupmean_-0.05_-0.1_stp_data
-output_dir: /projects/minsu/ATP_checkpoints/stp_grpo_custom_only_potential_exponential_step_positive_1.0_last_groupmean_-0.05_-0.1_stp_data
+hub_model_id: Minsukim/DS_sft_500k_only_potential_exponential_step_positive_1.0_last_groupmean_-0.05_-0.1_stp_data
+output_dir: /projects/minsu/ATP_checkpoints/DeepSeek-Prover-V1.5-7B_sft_stp_500k_grpo_custom_only_potential_exponential_step_positive_1.0_last_groupmean_-0.05_-0.1_stp_data
 
 log_level: info
 logging_steps: 10
@@ -39,8 +39,9 @@ report_to:
 #resume_from_checkpoint: true
 
 save_strategy: "steps"
-save_steps: 100
-save_total_limit: 5
+save_steps: 40
+save_only_model: true
+#save_total_limit: 5
 hub_strategy: "end"
 
 

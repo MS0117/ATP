@@ -194,6 +194,7 @@ class CUSTOMTrainer(GRPOTrainer):
         device = self.accelerator.device
         #print("tokenizer_len",len(self.processing_class))
         prompts = [x["prompt"] for x in inputs]
+        #print("prompts", prompts[0])
         #print("promts",prompts)
         prompts_text = [maybe_apply_chat_template(example, self.processing_class)["prompt"] for example in inputs]
         if 'gpt2' in str(self.model_name).lower() or 'llama' in str(self.model_name).lower() :
@@ -239,7 +240,7 @@ class CUSTOMTrainer(GRPOTrainer):
                 #print("error")
                 completion_ids = [None] * len(all_prompts_text)
                 completions_text = [None] * len(all_prompts_text)
-
+            #print("completions",completions_text[0])
             #print("completion_ids:", completion_ids)
             #completions_text = self.processing_class.batch_decode(completion_ids, skip_special_tokens=True)
             #print("completions_text",completions_text)
@@ -713,7 +714,7 @@ class CUSTOMTrainer(GRPOTrainer):
             tactic_advantages = inputs["tactic_advantages"]
             binary_score = inputs["binary_score"]
 
-            raw_advantages = self.alpha_advantage * tactic_advantages + binary_score.unsqueeze(1)
+            raw_advantages = self.alpha_advantage * tactic_advantages + (1-self.alpha_advantage)* binary_score.unsqueeze(1)
             # When using num_iterations == 1, old_per_token_logps == per_token_logps, so we can skip it's computation (see
             # _generate_and_score_completions) and use per_token_logps.detach() instead.
 

@@ -23,12 +23,24 @@ from trl.core import masked_mean, masked_whiten
 
 INVALID_LOGPROB = 1.0
 class CustomRLOOTrainer(RLOOTrainer):
-    def __init__(self, config, advantage_weight=1.0, **kwargs):
+    def __init__(self, config,  **kwargs):
         super().__init__(config=config, **kwargs)
-        self.advantage_weight = advantage_weight
+        self.advantage_weight = config.advantage_weight
         self.negative_dropout=config.negative_dropout
         self.dropout_rate=config.dropout_rate
         self.alpha_advantage= config.alpha_advantage
+        self.train_method=config.train_method
+        self.alpha_advantage = config.alpha_advantage
+        self.delta1= config.delta1
+        self.delta2= config.delta2
+        self.adv_baseline= config.adv_baseline
+        self.score_assign= config.score_assign
+        self.adv_method= config.adv_method
+        self.parse_method= config.parse_method
+        self.weighted_adv= config.weighted_adv
+        self.first_error=config.first_error
+        self.max_prompt_length=config.max_prompt_length
+
     def train(self):
         args = self.args
         accelerator = self.accelerator
@@ -52,6 +64,8 @@ class CustomRLOOTrainer(RLOOTrainer):
             top_k=0.0,
             top_p=1.0,
             do_sample=True,
+            eos_token_id=processing_class.eos_token_id,
+            pad_token_id=processing_class.pad_token_id,
         )
 
         accelerator.print("===training policy===")
@@ -150,8 +164,15 @@ class CustomRLOOTrainer(RLOOTrainer):
                         )
                     else:
                         decoded_queries = processing_class.batch_decode(query,skip_special_tokens=True)  # List of B query strings
-                        decoded_responses = processing_class.batch_decode(postprocessed_response,skip_special_tokens=True)  # List of B response strings
-                        output_reward_func,binary_score = reward_model(prompts=decoded_queries, completions=decoded_responses,processing_class=processing_class,max_len=max_len)
+                        decoded_responses = processing_class.batch_decode(postprocessed_response,skip_special_tokens=True, clean_up_tokenization_spaces = False)  # List of B response strings
+                        output_reward_func,binary_score = reward_model(prompts=decoded_queries, completions=decoded_responses,processing_class=processing_class,max_len=max_len, num_generation=args.rloo_k,
+                                                                        delta1=self.delta1,
+                                                                        delta2=self.delta2 ,
+                                                                        adv_baseline=self.adv_baseline,
+                                                                        score_assign=self.score_assign ,
+                                                                        adv_method=self.adv_method ,
+                                                                        parse_method=self.parse_method,
+                                                                        first_error=self.first_error)
                         pass_score = torch.tensor(binary_score, dtype=torch.float).to(device)
                         tactic = torch.tensor(output_reward_func).to(device)  # reward
 
@@ -246,15 +267,22 @@ class CustomRLOOTrainer(RLOOTrainer):
                 advantages = advantages.flatten()
 
 
-                binary_advantages=advantages.unsqueeze(1)
-                tactic_advantages = masked_whiten(tactic_advantages, mask=~padding_mask, shift_mean=False)
+
+
+
+
+
+                binary_advantages=advantages
+
+
+                #tactic_advantages = masked_whiten(tactic_advantages, mask=~padding_mask, shift_mean=False)
+
                 tactic_advantages = torch.masked_fill(tactic_advantages, padding_mask, 0.0)
-                advantages=( 1 - self.alpha_advantage) * tactic_advantages + self.alpha_advantage * binary_advantages
-
-                advantages = torch.masked_fill(advantages, padding_mask, 0.0)
-
-
-
+                if self.weighted_adv:
+                    advantages = self.alpha_advantage * tactic_advantages + (1 - self.alpha_advantage) * binary_advantages.unsqueeze(1)
+                    # raw_advantages =(1-self.alpha_advantage)* binary_score.unsqueeze(1)
+                else:
+                    advantages = self.alpha_advantage * tactic_advantages + binary_advantages.unsqueeze(1)
 
                 #dropout
 

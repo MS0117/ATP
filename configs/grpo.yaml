@@ -1,11 +1,11 @@
 # Model arguments
-model_name_or_path: "Minsukim/internlm_1_8_sft_bf16" #Minsukim/internlm_1_8_sft_bf16 #openai-community/gpt2 deepseek-ai/DeepSeek-Prover-V1.5-SFT
+model_name_or_path: Minsukim/DeepSeek-Prover-V1.5-7B_sft_stp_500k #Minsukim/DeepSeek-Prover-V1.5-7B_sft_stp2_epoch2 #Minsukim/DeepSeek-Prover-V2-7B_sft_stp #deepseek-ai/DeepSeek-Prover-V2-7B  kfdong/STP_model_Lean_0320 Goedel-LM/Goedel-Prover-SFT Minsukim/internlm_1_8_sft_bf16 #openai-community/gpt2 deepseek-ai/DeepSeek-Prover-V2-7B
 model_revision: main
 torch_dtype: bf16
 attn_implementation: flash_attention_2
 trust_remote_code: true
 # Data training arguments
-dataset_name: workbook
+dataset_name: stp
 dataset_split: train
 preprocessing_num_workers: 24
 
@@ -19,24 +19,26 @@ gradient_accumulation_steps: 8
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: true
-hub_model_id: Minsukim/deepseek_GRPO_baseline_workbookdata
-output_dir: /projects/minsu/ATP_checkpoints/deepseek_GRPO_baseline_workbookdata
+hub_model_id: Minsukim/DeepSeek-Prover-V1.5-7B_sft_stp_500k_GRPO_baseline_stpdata_1024
+output_dir: /projects/minsu/ATP_checkpoints/DeepSeek-Prover-V1.5-7B_sft_stp_500k_GRPO_baseline_stpdata_1024
+
+
 log_level: info
 logging_steps: 10
 logging_strategy: steps
 
 save_strategy: "steps"
 save_steps: 100
-save_total_limit: 1
+save_total_limit: 5
 hub_strategy: "end"
 
 
 
-resume_from_checkpoint: true
+resume_from_checkpoint: false
 
 
 beta: 0.04
-learning_rate: 1.0e-05
+learning_rate:  1.0e-05
 temperature: 0.9
 
 
@@ -54,16 +56,15 @@ warmup_ratio: 0.1
 num_generations: 4
 num_iterations: 2
 use_vllm: true
-vllm_gpu_memory_utilization: 0.5
-max_completion_length: 2048   #gpt2: 256, others: 2048
+vllm_gpu_memory_utilization: 0.5    #0.6 for deepseek-v2 other:0.5
+max_completion_length: 1024   #gpt2: 256, others: 2048
 max_prompt_length: 512
 use_peft: true
 load_in_4bit: false
 load_in_8bit: false
-lora_r: 16
-lora_alpha: 16
-
-
+lora_r: 64
+lora_alpha: 64
+lora_target_modules: all-linear
 
 # Hub
 push_to_hub: true

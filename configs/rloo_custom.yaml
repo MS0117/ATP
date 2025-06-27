@@ -1,11 +1,12 @@
 # Model arguments
-model_name_or_path: "Minsukim/internlm_1_8_sft_bf16" #Minsukim/internlm_1_8_sft_bf16 #openai-community/gpt2 deepseek-ai/DeepSeek-Prover-V1.5-SFT
+model_name_or_path: "openai-community/gpt2" #kfdong/STP_model_Lean_0320  Minsukim/internlm_1_8_sft_bf16 #openai-community/gpt2 deepseek-ai/DeepSeek-Prover-V1.5-SFT
+base_model_name_or_path: "openai-community/gpt2"
 model_revision: main
 torch_dtype: bf16
 attn_implementation: flash_attention_2
 trust_remote_code: true
 # Data training arguments
-dataset_name: deepseek
+dataset_name: stp
 dataset_split: train
 preprocessing_num_workers: 24
 
@@ -20,8 +21,8 @@ gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: False
 per_device_train_batch_size: 1
-hub_model_id: Minsukim/RLOO_internlm_CUSTOM_512_deepseekdata
-output_dir: /projects/minsu/ATP_checkpoints/internlm_RLOO_CUSTOM_512_deepseekdata
+hub_model_id:
+output_dir: /projects/minsu/ATP_checkpoints/test
 
 
 log_level: info
@@ -54,27 +55,40 @@ seed: 42
 warmup_ratio: 0.1
 
 #rloo
+vllm_gpu_memory_utilization: 0.5
 local_rollout_forward_batch_size: 4   #should be same as rloo_k
 local_mini_batch_size: 4 #should be same as rloo_k
-response_length: 512 #gpt2: 256, others: 2048
+max_prompt_length: 512
+response_length: 1024 #gpt2: 256, others: 2048
 rloo_k: 4
 num_sample_generations: 0
 negative_dropout : false
 dropout_rate: 0.5
-alpha_advantage: 0.8
+
 #token_level_kl: true
 
+train_method: "rloo"
+alpha_advantage: 1
+delta1: -0.05
+delta2: -0.1
+adv_baseline: "group"
+score_assign: "all"  #last ,all
+adv_method: "label"    #return or label
+parse_method: "tree"
+weighted_adv: false
+first_error: true
 
-use_peft: false
+
+use_peft: true
 load_in_4bit: false
 load_in_8bit: false
-lora_r: 16
-lora_alpha: 16
-#lora_target_modules: all-linear
+lora_r: 64
+lora_alpha: 64
+lora_target_modules: all-linear
 
 
 # Hub
 push_to_hub: true
 hub_private_repo: true
-wandb_project: ATP
+#wandb_project: ATP
 wandb_entity: kimminsu

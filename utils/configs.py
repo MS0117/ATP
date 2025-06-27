@@ -332,7 +332,19 @@ class CUSTOMConfig(trl.GRPOConfig):
     negative_dropout :Optional[bool]=field(default=False)
     dropout_rate: Optional[float]=field(default=0.5)
     alpha_advantage: Optional[float]=field(default=0.5)
-
+    delta1: Optional[float]=field(default=-0.05)
+    delta2: Optional[float] = field(default=-0.1)
+    adv_baseline: Optional[str]=field(default="group")
+    score_assign: Optional[str]=field(default="last")
+    adv_method: Optional[str]=field(default="label")    #return or label
+    parse_method: Optional[str]=field(default="tree")
+    weighted_adv: Optional[bool]=field(default=True)
+    first_error: Optional[bool]=field(default=False)
+    delta_clip: Optional[float]=field(default=None)
+    potent_func:Optional[bool]=field(default=False)
+    potent_type: Optional[str] = field(default="first_err_dist")
+    potent_positive:Optional[bool]=field(default=False)
+    shift_potential:Optional[bool]=field(default=False)
 @dataclass
 class GRPOConfig(trl.GRPOConfig):
 
@@ -370,6 +382,21 @@ class CUSTOMRLOOConfig(trl.RLOOConfig):
     )
     negative_dropout :Optional[bool]=field(default=False)
     dropout_rate: Optional[float]=field(default=0.5)
-    alpha_advantage: Optional[float]=field(default=0.5)
+    max_prompt_length: Optional[int]=field(default=512)
+    train_method: Optional[str]=field(default=None)
+    alpha_advantage: Optional[float] = field(default=0.5)
+    delta1: Optional[float] = field(default=-0.05)
+    delta2: Optional[float] = field(default=-0.1)
+    adv_baseline: Optional[str] = field(default="group")
+    score_assign: Optional[str] = field(default="last")
+    adv_method: Optional[str] = field(default="label")  # return or label
+    parse_method: Optional[str] = field(default="tree")
+    weighted_adv: Optional[bool] = field(default=True)
+    first_error: Optional[bool] = field(default=False)
+    vllm_gpu_memory_utilization: Optional[float] = field(default=0.5)
+    vllm_device: str | None = None
+    base_model_name_or_path: str = None
+
+
 
 

@@ -1,11 +1,11 @@
 # Model arguments
-model_name_or_path: "Minsukim/internlm_1_8_sft_bf16_epoch1" #Minsukim/internlm_1_8_sft_bf16_epoch1 #Minsukim/internlm_1_8_sft_bf16  #openai-community/gpt2 deepseek-ai/DeepSeek-Prover-V1.5-SFT
+model_name_or_path: "Minsukim/internlm_1_8_sft_bf16" #Minsukim/internlm_1_8_sft_bf16_epoch1 #Minsukim/internlm_1_8_sft_bf16  #openai-community/gpt2 deepseek-ai/DeepSeek-Prover-V1.5-SFT
 model_revision: main
 torch_dtype: bf16
 attn_implementation: flash_attention_2
 trust_remote_code: true
 # Data training arguments
-dataset_name: deepseek
+dataset_name: mix
 dataset_split: train
 preprocessing_num_workers: 24
 
@@ -19,8 +19,8 @@ gradient_accumulation_steps: 8
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: true
-hub_model_id: Minsukim/GRPO_internlm_epoch1_GRPO_baseline2_rtx_512__deepseekdata
-output_dir: /projects/minsu/ATP_checkpoints/internlm_epoch1_GRPO_baseline2_rtx_512_deepseekdata
+hub_model_id: Minsukim/GRPO_internlm_epoch3_GRPO_baseline_imend_rtx_512_mix
+output_dir: /projects/minsu/ATP_checkpoints/internlm_epoch3_GRPO_baseline_imend_rtx_512_mix
 
 log_level: info
 logging_steps: 10
@@ -28,7 +28,8 @@ logging_strategy: steps
 
 save_strategy: "steps"
 save_steps: 100
-save_total_limit: 1
+save_total_limit: 7
+save_only_model: true
 hub_strategy: "end"
 
 #resume_from_checkpoint: true

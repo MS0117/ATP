@@ -1,11 +1,11 @@
 # Model arguments
-model_name_or_path: "openai-community/gpt2"   #Minsukim/internlm_1_8_sft_bf16 deepseek-ai/DeepSeek-Prover-V1.5-SFT, openai-community/gpt2
+model_name_or_path: "kfdong/STP_model_Lean_0320"   #kfdong/STP_model_Lean_0320 Minsukim/internlm_1_8_sft_bf16 deepseek-ai/DeepSeek-Prover-V1.5-SFT, openai-community/gpt2
 model_revision: main
 torch_dtype: bf16
 attn_implementation: flash_attention_2
 trust_remote_code: true
 # Data training arguments
-dataset_name: deepseek
+dataset_name: stp
 dataset_split: train
 preprocessing_num_workers: 24
 
@@ -19,9 +19,8 @@ gradient_accumulation_steps: 8
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: true
-hub_model_id: Minsukim/CUSTOM_internlm2_rtx_512_deepseekdata
-output_dir: /projects/minsu/ATP_checkpoints/CUSTOM_internlm2_rtx_512_deepseekdata
-
+hub_model_id:
+output_dir: /projects/minsu/ATP_checkpoints/test
 
 log_level: info
 logging_steps: 10
@@ -41,17 +40,20 @@ report_to:
 
 save_strategy: "steps"
 save_steps: 100
-save_total_limit: 1
+save_total_limit: 5
 hub_strategy: "end"
+
 
 
 seed: 42
 warmup_ratio: 0.1
-use_peft: false
+use_peft: true
 load_in_4bit: false
 load_in_8bit: false
 lora_r: 16
 lora_alpha: 16
+lora_target_modules: all-linear
+
 
 
 
@@ -68,20 +70,32 @@ num_generations: 4
 num_iterations: 2
 use_vllm: true
 vllm_gpu_memory_utilization: 0.5
-max_completion_length: 512   #gpt2: 256, others: 2048 #internlm 512 or 1024
+max_completion_length: 1024  #gpt2: 256, others: 2048
+max_prompt_length: 512
 loss_function: "grpo"
 token_level_kl: true
 normalize_advantage: true
 kl_coef: true
 cliprange: 0.2
 whiten_rewards: false
-alpha_advantage: 0.2
+alpha_advantage: 0
 
+
+
+delta1: -0.05
+delta2: -0.1
+adv_baseline: "group"
+score_assign: "all"  #last ,all
+adv_method: "label"    #return or label
+parse_method: "tree"
+weighted_adv: false
+first_error: true
 
 negative_dropout : false
 dropout_rate: 0.5
 
+
 # Hub
-push_to_hub: true
+push_to_hub: false
 hub_private_repo: true
 wandb_entity: kimminsu

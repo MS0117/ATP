@@ -25,7 +25,7 @@ from trl.import_utils import is_rich_available, is_vllm_available
 from trl.data_utils import apply_chat_template, is_conversational, maybe_apply_chat_template
 from trl.extras.profiling import profiling_context, profiling_decorator
 from accelerate.utils import broadcast_object_list, gather, gather_object, is_peft_model, set_seed
-from .reward_function import lean4_value_reward, lean4_rloo_custom_reward
+from .reward_function import lean4_value_reward,lean4_rloo_custom_reward,deepseek_lean4_rloo_custom_reward
 from trl.core import masked_mean, masked_whiten
 from trl.trainer.utils import (
     generate_model_card,
@@ -150,7 +150,14 @@ class NEWCUSTOMTrainer(GRPOTrainer):
             if isinstance(reward_func, str):
                 # If that string is "lean", replace with your custom function
                 if reward_func.lower() == "lean":
-                    reward_funcs[i] = lean4_rloo_custom_reward
+                    if 'deepseek' in model.lower():
+                        reward_function =deepseek_lean4_rloo_custom_reward
+                        reward_funcs[i] = reward_function
+                    else:
+                        reward_function =lean4_rloo_custom_reward
+                        reward_funcs[i] = reward_function
+
+
                 else:
                     # Otherwise, assume it's a valid HF model name
                     reward_funcs[i] = AutoModelForSequenceClassification.from_pretrained(
@@ -171,6 +178,19 @@ class NEWCUSTOMTrainer(GRPOTrainer):
         self.negative_dropout = args.negative_dropout
         self.dropout_rate = args.dropout_rate
         self.alpha_advantage = args.alpha_advantage
+        self.delta1= args.delta1
+        self.delta2= args.delta2
+        self.adv_baseline= args.adv_baseline
+        self.score_assign= args.score_assign
+        self.adv_method= args.adv_method
+        self.parse_method= args.parse_method
+        self.weighted_adv= args.weighted_adv
+        self.first_error=args.first_error
+        self.delta_clip=args.delta_clip
+        self.potent_func= args.potent_func
+        self.potent_type= args.potent_type
+        self.potent_positive= args.potent_positive
+        self.shift_potential= args.shift_potential
 
     @profiling_decorator
     def _prepare_inputs(self, inputs: dict[str, Union[torch.Tensor, Any]]) -> dict[str, Union[torch.Tensor, Any]]:
@@ -293,8 +313,9 @@ class NEWCUSTOMTrainer(GRPOTrainer):
                     ref_per_token_logps = self._get_per_token_logps(
                         self.model, prompt_completion_ids, attention_mask, logits_to_keep
                     )
-
-        completions_text = self.processing_class.batch_decode(completion_ids, skip_special_tokens=True)
+        #print("completion_ids",completion_ids[0])
+        #completions_text = self.processing_class.batch_decode(completion_ids, skip_special_tokens=True)
+        completions_text = self.processing_class.batch_decode(completion_ids, skip_special_tokens=True, clean_up_tokenization_spaces = False)
         if is_conversational(inputs[0]):
             completions = []
             for prompt, completion in zip(prompts, completions_text):
@@ -327,17 +348,29 @@ class NEWCUSTOMTrainer(GRPOTrainer):
             elif "lean" in str(reward_func).lower():
                 # print("prompts",prompts)
                 # print("completions",completions)
-                output_reward_func, binary_pass_score = reward_func(prompts=prompts, completions=completions,
+                output_reward_func, binary_pass_score,all_token_ids,tactic_mean = reward_func(prompts=prompts, completions=completions,
                                                                     processing_class=self.processing_class,
                                                                     max_len=completion_ids.size(
-                                                                        1))  # reward feedback generation, lean4_scheduler
+                                                                        1), num_generation=self.num_generations,
+                delta1=self.delta1,
+                delta2=self.delta2 ,
+                adv_baseline=self.adv_baseline,
+                score_assign=self.score_assign ,
+                adv_method=self.adv_method ,
+                parse_method=self.parse_method,
+                first_error=self.first_error,
+                potent_func=self.potent_func,
+                potent_type=self.potent_type,
+                potent_positive  =self.potent_positive,
+                shift_potential=self.shift_potential
+                )  # reward feedback generation, lean4_scheduler
 
                 """padded_scores tensor([[ 1.,  1.,  , -1., -1.,  1.],
                                         [1.,  1.,  , -1., -1.,  1.]])
                 """
                 binary_pass_score = torch.tensor(binary_pass_score, dtype=torch.float32, device=device)
                 tactic_advantage = torch.tensor(output_reward_func, dtype=torch.float32, device=device)  # reward
-                # print("rewards_per_func.size()",rewards_per_func.size())
+                #print("rewards_per_func.size()",tactic_advantage.size())
 
 
             else:
@@ -390,6 +423,17 @@ class NEWCUSTOMTrainer(GRPOTrainer):
         # print(f"{self.accelerator.process_index}_completions_text", completions_text)
 
         binary_pass_score = gather(binary_pass_score)
+
+
+
+        #torch.set_printoptions(threshold=float('inf'))
+
+        #print("rewards ", binary_pass_score )
+
+
+
+
+
         binary_score_mean = binary_pass_score.mean(0)
         # Apply weights to each reward function's output and sum
 
@@ -476,7 +520,7 @@ class NEWCUSTOMTrainer(GRPOTrainer):
             else:
                 reward_func_name = reward_func.__name__
             self._metrics[mode][f"rewards/{reward_func_name}"].append(reward_mean.item())
-
+        self._metrics[mode][f"rewards/tactic_mean"].append(tactic_mean)
         self._metrics[mode][f"rewards/tactic_adv"].append(tactic_advantage_mean.item())
         self._metrics[mode][f"rewards/grouped_binary_mean"].append(mean_grouped_rewards.mean().item())
         self._metrics[mode][f"rewards/grouped_binary_std"].append(std_grouped_rewards.mean().item())
@@ -513,6 +557,17 @@ class NEWCUSTOMTrainer(GRPOTrainer):
                     df = pd.DataFrame(table)
                     wandb.log({"completions": wandb.Table(dataframe=df)})
 
+        """
+        print(
+            f"prompt_ids       = {prompt_ids}\n"
+            f"advantages       = {binary_pass_score}\n"
+            f"completion_ids   = {completion_ids}\n"
+            f"tactic_advantages= {tactic_advantage}",
+            flush=True
+        )
+        """
+
+
         return {
             "prompt_ids": prompt_ids,
             "prompt_mask": prompt_mask,
@@ -535,11 +590,12 @@ class NEWCUSTOMTrainer(GRPOTrainer):
         input_ids = torch.cat([prompt_ids, completion_ids], dim=1)
         attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)
         logits_to_keep = completion_ids.size(1)  # we only need to compute the logits for the completion tokens
-
+        ref_per_token_logps = inputs["ref_per_token_logps"]
+        tactic_advantages = inputs["tactic_advantages"]
         # ref_per_token_logps = inputs["ref_per_token_logps"]
 
-        # print("completion_ids.size",completion_ids.size())
-        # print("completion_mask.size",completion_mask.size())
+        #print("completion_ids.size",completion_ids.size())
+        #print("completion_mask.size",completion_mask.size())
         per_token_logps = self._get_per_token_logps(model, input_ids, attention_mask, logits_to_keep)
 
         if 'ppo' in self.loss_function.lower():
@@ -616,8 +672,15 @@ class NEWCUSTOMTrainer(GRPOTrainer):
             # Compute the loss
             tactic_advantages = inputs["tactic_advantages"]
             binary_score = inputs["binary_score"]
+            #print("tactic_advantages",tactic_advantages)
+            #print("binary_score", binary_score)
 
-            raw_advantages = self.alpha_advantage * tactic_advantages + binary_score.unsqueeze(1)
+            if self.weighted_adv:
+                raw_advantages = self.alpha_advantage * tactic_advantages + (1-self.alpha_advantage)* binary_score.unsqueeze(1)
+                #raw_advantages =(1-self.alpha_advantage)* binary_score.unsqueeze(1)
+            else:
+                raw_advantages = self.alpha_advantage * tactic_advantages +  binary_score.unsqueeze(1)
+
             # When using num_iterations == 1, old_per_token_logps == per_token_logps, so we can skip it's computation (see
             # _generate_and_score_completions) and use per_token_logps.detach() instead.
 
@@ -644,12 +707,25 @@ class NEWCUSTOMTrainer(GRPOTrainer):
             epsilon_high = self.epsilon + 0.08
             coef_1 = torch.exp(per_token_logps - old_per_token_logps)
             coef_2 = torch.clamp(coef_1, 1 - self.epsilon, 1 + epsilon_high)
+
+            if self.delta_clip is not None:
+                coef_1 = torch.clamp(coef_1, max=self.delta_clip)
+
             per_token_loss1 = coef_1 * advantages
             per_token_loss2 = coef_2 * advantages
             per_token_loss = -torch.min(per_token_loss1, per_token_loss2)
             if self.beta != 0.0:
                 per_token_loss = per_token_loss + self.beta * per_token_kl
             loss = (per_token_loss * completion_mask).sum() / completion_mask.sum()
+
+            """
+            print(
+                f"loss      = {loss}\n",
+                f"advantages      = {advantages}\n",
+                f"per_token_logps      = {per_token_logps}\n"
+                f"old_per_token_logps     = {old_per_token_logps}",
+            flush = True)
+            """
 
         # Log the metrics
         mode = "eval" if self.control.should_evaluate else "train"

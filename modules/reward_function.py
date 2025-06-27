@@ -146,6 +146,31 @@ def build_interval_tree(intervals: List[Interval]) -> Tuple[List[Dict], List[Dic
     roots = [n for n in nodes if all(n not in p["children"] for p in nodes)]
     return roots, nodes
 
+def build_potential_interval_tree(intervals: List[Interval]) -> Tuple[List[Dict], List[Dict]]:
+    """
+    Build a containment tree.
+    Returns (roots, flat_list_of_all_nodes).
+    Each node is a dict with keys: start, end, label, children, return.
+    """
+    # Sort by start asc, end desc so that parents appear before their children
+    sorted_intv = sorted(intervals, key=lambda x: (x[0], -x[1]))
+    stack = []  # holds the current path of open intervals
+    nodes = []  # flat list of every node
+
+    for s, e, lbl,val,pot in sorted_intv:
+        node = {"start": s, "end": e, "label": lbl,"real_val":val, "potential":pot, "children": []}
+        # climb up until we find a parent that contains (s,e)
+        while stack and not (stack[-1]["start"] <= s and stack[-1]["end"] >= e):
+            stack.pop()
+        if stack:  # stack[-1] is the parent
+            stack[-1]["children"].append(node)
+        stack.append(node)
+        nodes.append(node)
+
+    # Roots are those that never became anyone’s child
+    roots = [n for n in nodes if all(n not in p["children"] for p in nodes)]
+    return roots, nodes
+
 
 def _dfs_compute_returns(node: Dict, gamma: float) -> float:
     """Post‑order DFS that fills node['return'] and returns it."""
@@ -419,7 +444,7 @@ def build_tactic_tree(full_text: str, tactics: list) -> list:
 def gather_intervals_no_split(snippet_text, out_data):
     """
     Return a list of intervals (startAbs, endAbs, label) in snippet_text coordinates.
-    Tactics => +1, Errors => -1.
+    Tactics => +1, Errors => 0.
     """
     intervals = []
     line_offsets, _ = compute_line_offsets(snippet_text)
@@ -602,10 +627,10 @@ def compute_returns_no_split(full_text, intervals, tokenizer, gamma=0.9, prompt_
     mean = stat_mean(discounted)
     var = pvariance(discounted)
 
-    # 3) 표준편차 = sqrt(var + eps)
+
     std = math.sqrt(var + 1e-04)
 
-    # 4) 정규화된 advantage
+    # 4)  advantage
     advantages = [(d - mean) / std for d in discounted]
 
 
@@ -769,14 +794,11 @@ def compute_token_level_advantages(prompts, completions, outputs_list, tokenizer
 
 
 
+##calculate advantage, grouped_mean_baseline
 
 
 
-##grouped_mean_baseline
-
-
-
-def grouped_compute_returns_no_split(full_text, intervals, tokenizer, mean, gamma=0.9, prompt_len=0):
+def grouped_compute_returns_no_split(full_text, intervals, tokenizer, mean, ad_baseline,gamma=0.9, prompt_len=0):
     """
     Given full_text and a list of absolute intervals (start, end, label),
     assign a fixed immediate reward = label for each interval,
@@ -819,6 +841,7 @@ def grouped_compute_returns_tree(
         intervals: List[Interval],
         tokenizer,
         mean,
+        ad_baseline,
         gamma: float = 0.9,
         prompt_len: int = 0,
 ):
@@ -840,6 +863,11 @@ def grouped_compute_returns_tree(
     results = []
     if not returns:  # <- nothing to do
         return ([],)  # (empty results, baseline 0)
+    if 'seq' in ad_baseline.lower():        #seq는 tactic score의 mean
+        baseline= np.mean(returns)
+    elif 'group' in ad_baseline.lower():       #group은 group에서의 biniary score의 mean
+        baseline=mean
+        #print("baseline!!",baseline)
 
 
     for n in all_nodes:
@@ -850,7 +878,7 @@ def grouped_compute_returns_tree(
                 "label": n["label"],
                 "immediate_reward": n["label"],
                 "discounted_tree_return": n["return"],
-                "advantage": n["return"] - mean,
+                "advantage": n["return"] - baseline,
             }
         )
 
@@ -860,15 +888,16 @@ def grouped_compute_returns_tree(
     return (results,)
 
 
-def grouped_compute_token_level_advantages(prompts, completions, outputs_list, tokenizer, extracted_codes, type, gamma,num_generation):
+def grouped_compute_token_level_advantages(prompts, completions, outputs_list, tokenizer, extracted_codes, type, gamma,num_generation,ad_baseline):     #use rloo reward function, baseline is grouped mean
     """
     Process each sample (prompt, completion, out_data, extracted_code) individually.
     Returns lists (one per sample) of token_scores, token_texts, token_advantages, intervals_info, and baseline.
     """
+    ad_baseline = ad_baseline
     all_token_scores = []
     all_token_texts = []
 
-    binary_pass_score = [1 if out["complete"] == "True" else 0 for out in outputs_list]
+    binary_pass_score = [float(item["complete"]) for item in outputs_list]
 
     n = len(binary_pass_score)
     num_groups = math.ceil(n / num_generation)  # works even if it doesn't divide evenly
@@ -901,7 +930,7 @@ def grouped_compute_token_level_advantages(prompts, completions, outputs_list, t
             abs_intervals = convert_snippet_intervals_to_full_text(prompt, completion, snippet,
                                                                    snippet_intervals)  # get the position of tactic and error in the full text (prompt+completion)
 
-            intervals_info, = grouped_compute_returns_no_split(full_text, abs_intervals, tokenizer, baseline,gamma=gamma,
+            intervals_info, = grouped_compute_returns_no_split(full_text, abs_intervals, tokenizer, baseline,ad_baseline,gamma=gamma,
                                                        prompt_len=prompt_len)
 
         if type == 'tree':
@@ -912,7 +941,7 @@ def grouped_compute_token_level_advantages(prompts, completions, outputs_list, t
             abs_intervals = convert_snippet_intervals_to_full_text(prompt, completion, snippet,
                                                                    snippet_intervals)  # get the position of tactic and error in the full text (prompt+completion)
 
-            intervals_info, = grouped_compute_returns_tree(full_text, abs_intervals, tokenizer,baseline, gamma=gamma,
+            intervals_info, = grouped_compute_returns_tree(full_text, abs_intervals, tokenizer,baseline,ad_baseline, gamma=gamma,
                                                    prompt_len=prompt_len)
             # if len(intervals_info)==0:
             #    print("no interval",out_data)
@@ -992,7 +1021,7 @@ def grouped_compute_token_level_advantages(prompts, completions, outputs_list, t
 
 
 #score as value
-def value_compute_returns_no_split(full_text, intervals, tokenizer, mean, gamma=0.9, prompt_len=0):
+def value_compute_returns_no_split(full_text, intervals, tokenizer, mean,ad_baseline, gamma=0.9, prompt_len=0):
     """
     Given full_text and a list of absolute intervals (start, end, label),
     assign a fixed immediate reward = label for each interval,
@@ -1007,10 +1036,14 @@ def value_compute_returns_no_split(full_text, intervals, tokenizer, mean, gamma=
     for r in reversed(rewards):
         running = r + gamma * running
         discounted.insert(0, running)
-        print("running ", type(running))
+        #print("running ", type(running))
 
+    if 'seq' in ad_baseline.lower():        #seq는 tactic score의 mean
+        baseline= np.mean(rewards)
+    elif 'group' in ad_baseline.lower():       #group은 group에서의 biniary score의 mean
+        baseline=mean
 
-    advantages = [ d - mean for d in discounted]
+    advantages = [ d - baseline for d in discounted]
 
 
 
@@ -1035,6 +1068,7 @@ def value_compute_returns_tree(
         intervals: List[Interval],
         tokenizer,
         mean,
+        ad_baseline,
         gamma: float = 0.9,
         prompt_len: int = 0,
 ):
@@ -1057,7 +1091,11 @@ def value_compute_returns_tree(
     if not values:  # <- nothing to do
         return ([],)  # (empty results, baseline 0)
 
-    baseline= np.mean(values)
+    if 'seq' in ad_baseline.lower():        #seq는 tactic score의 mean (first trial)
+        baseline= np.mean(values)
+    elif 'group' in ad_baseline.lower():       #group은 group에서의 biniary score의 mean
+        baseline=mean
+        #print("baseline!!",baseline)
 
     for n in all_nodes:
         results.append(
@@ -1077,15 +1115,16 @@ def value_compute_returns_tree(
     return (results,)
 
 
-def value_compute_token_level_advantages(prompts, completions, outputs_list, tokenizer, extracted_codes, type, gamma,num_generation):
+def value_compute_token_level_advantages(prompts, completions, outputs_list, tokenizer, extracted_codes, type, gamma,num_generation, ad_baseline):
     """
     Process each sample (prompt, completion, out_data, extracted_code) individually.
     Returns lists (one per sample) of token_scores, token_texts, token_advantages, intervals_info, and baseline.
     """
+    ad_baseline= ad_baseline
     all_token_scores = []
     all_token_texts = []
 
-    binary_pass_score = [1 if out["complete"] == "True" else 0 for out in outputs_list]
+    binary_pass_score = [float(item["complete"]) for item in outputs_list]
 
     n = len(binary_pass_score)
     num_groups = math.ceil(n / num_generation)  # works even if it doesn't divide evenly
@@ -1101,8 +1140,7 @@ def value_compute_token_level_advantages(prompts, completions, outputs_list, tok
     for idx,(prompt, completion, out_data, snippet) in enumerate(zip(prompts, completions, outputs_list, extracted_codes)):
 
         baseline = group_means[idx // num_generation]
-
-
+        #print("baseline",baseline)
         full_text = prompt + completion
         # Use the provided snippet (ensure it's a string)
         prompt_len = len(prompt)
@@ -1118,8 +1156,8 @@ def value_compute_token_level_advantages(prompts, completions, outputs_list, tok
             abs_intervals = convert_snippet_intervals_to_full_text(prompt, completion, snippet,
                                                                    snippet_intervals)  # get the position of tactic and error in the full text (prompt+completion)
 
-            intervals_info, = value_compute_returns_no_split(full_text, abs_intervals, tokenizer, baseline,gamma=gamma,
-                                                       prompt_len=prompt_len)
+            intervals_info, = value_compute_returns_no_split(full_text, abs_intervals, tokenizer, baseline,ad_baseline,gamma=gamma,
+                                                       prompt_len=prompt_len,)
 
         if type == 'tree':
             snippet_intervals = gather_intervals_no_split(snippet,
@@ -1129,8 +1167,8 @@ def value_compute_token_level_advantages(prompts, completions, outputs_list, tok
             abs_intervals = convert_snippet_intervals_to_full_text(prompt, completion, snippet,
                                                                    snippet_intervals)  # get the position of tactic and error in the full text (prompt+completion)
 
-            intervals_info, = value_compute_returns_tree(full_text, abs_intervals, tokenizer,baseline, gamma=gamma,
-                                                   prompt_len=prompt_len)
+            intervals_info, = value_compute_returns_tree(full_text, abs_intervals, tokenizer,baseline, ad_baseline, gamma=gamma,
+                                                   prompt_len=prompt_len,)
             # if len(intervals_info)==0:
             #    print("no interval",out_data)
             #    print("no interbval snippet", snippet)
@@ -1199,6 +1237,611 @@ def value_compute_token_level_advantages(prompts, completions, outputs_list, tok
 
 
 
+
+
+
+
+
+
+
+
+#score as value, change base reward 1, delta, delta_2
+
+def delta_deduplicate_intervals(intervals,delta2):
+    if not intervals:
+        return []
+
+    # (start, end) 기준으로 정렬 (label은 정렬 순서에 영향을 주지 않음)
+    intervals = sorted(intervals, key=lambda x: (x[0], x[1]))
+    deduped = []
+    i = 0
+    while i < len(intervals):
+        start, end, label = intervals[i]
+        # 동일한 (start, end)를 가지는 interval들을 candidates에 모음.
+        candidates = [(start, end, label)]
+        j = i + 1
+        while j < len(intervals) and intervals[j][0] == start and intervals[j][1] == end:
+            candidates.append(intervals[j])
+            j += 1
+        # candidates 중 하나라도 label이 -1이면, -1을 유지.
+        if any(c[2] == delta2 for c in candidates):
+            deduped.append((start, end, delta2))
+        else:
+            deduped.append(candidates[0])
+        i = j
+    return deduped
+
+
+def delta_gather_intervals_no_split(
+        snippet_text, out_data,
+        pass_score, delta1, delta2,
+        first_error: bool
+):
+    """
+    Return a list of (start, end, label) in *snippet_text* coordinates.
+      • pass_score == 1 → original behaviour
+      • pass_score != 1 and first_error == True → everything from the first
+        error onward is labelled delta2
+      • pass_score != 1 and first_error == False → original delta1 / delta2 mix
+    """
+    # -------------------------------------------------- common setup
+    intervals = []
+    line_offsets, _ = compute_line_offsets(snippet_text)
+
+    def to_abs(pos):
+        if not pos:
+            return None
+        line_idx = pos["line"] - 1
+        col_idx  = pos["column"] - 1
+        if line_idx < 0 or line_idx >= len(line_offsets):
+            return None
+        return line_offsets[line_idx] + col_idx
+    # -------------------------------------------------- logic branches
+    if not first_error:
+        if pass_score == 1:
+            # original “passed” behaviour
+            for t in out_data.get("tactics", []):
+                start = to_abs(t.get("pos") or t.get("endPos"))
+                end   = to_abs(t.get("endPos") or t.get("pos"))
+                if start is not None and end is not None and end > start:
+                    intervals.append((start, end, 1))
+            for e in out_data.get("errors", []):
+                start = to_abs(e.get("pos") or e.get("endPos"))
+                end   = to_abs(e.get("endPos") or e.get("pos"))
+                if start is not None and end is not None and end > start:
+                    intervals.append((start, end, 0))
+        else:
+            # original “failed but keep delta1/delta2 distinction” behaviour
+            for t in out_data.get("tactics", []):
+                start = to_abs(t.get("pos") or t.get("endPos"))
+                end   = to_abs(t.get("endPos") or t.get("pos"))
+                if start is not None and end is not None and end > start:
+                    intervals.append((start, end, delta1))
+            for e in out_data.get("errors", []):
+                start = to_abs(e.get("pos") or e.get("endPos"))
+                end   = to_abs(e.get("endPos") or e.get("pos"))
+                if start is not None and end is not None and end > start:
+                    intervals.append((start, end, delta2))
+    else:
+        if pass_score == 1:
+            # original “passed” behaviour
+            for t in out_data.get("tactics", []):
+                start = to_abs(t.get("pos") or t.get("endPos"))
+                end   = to_abs(t.get("endPos") or t.get("pos"))
+                if start is not None and end is not None and end > start:
+                    intervals.append((start, end, 1))
+            for e in out_data.get("errors", []):
+                start = to_abs(e.get("pos") or e.get("endPos"))
+                end   = to_abs(e.get("endPos") or e.get("pos"))
+                if start is not None and end is not None and end > start:
+                    intervals.append((start, end, 0))
+
+        else:
+            raw = []
+            first_error_pos = None
+
+            for e in out_data.get("errors", []):
+                start = to_abs(e.get("pos") or e.get("endPos"))
+                end   = to_abs(e.get("endPos") or e.get("pos"))
+                if start is not None and end is not None and end > start:
+                    raw.append((start, end, 'error'))
+                    if first_error_pos is None or start < first_error_pos:
+                        first_error_pos = start
+
+            for t in out_data.get("tactics", []):
+                start = to_abs(t.get("pos") or t.get("endPos"))
+                end   = to_abs(t.get("endPos") or t.get("pos"))
+                if start is not None and end is not None and end > start:
+                    raw.append((start, end, 'tactic'))
+
+            raw.sort(key=lambda x: x[0])  # by start
+            for start, end, kind in raw:
+                if first_error_pos is not None and start >= first_error_pos:
+                    intervals.append((start, end, delta2))
+                else:
+                    intervals.append((start, end, delta2 if kind == 'error' else delta1))
+
+    return intervals
+
+
+def delta_value_compute_returns_no_split(full_text, intervals, tokenizer, mean,ad_baseline,delta1, delta2, gamma=0.9, prompt_len=0, adv_method=None,rloo_mean=None):
+    """
+    Given full_text and a list of absolute intervals (start, end, label),
+    assign a fixed immediate reward = label for each interval,
+    discount them backward, and compute baseline and advantages.
+    """
+    intervals = delta_deduplicate_intervals(intervals,delta2)
+    intervals = sorted(intervals, key=lambda x: x[0])
+    # For fixed reward, each interval's reward is simply its label.
+    rewards = [label for (start, end, label) in intervals]
+    discounted = []
+    running = 0.0
+    for r in reversed(rewards):
+        running = r + gamma * running
+        discounted.insert(0, running)
+        #print("running ", type(running))
+
+    if 'seq' in ad_baseline.lower():        #seq는 tactic score의 mean
+        baseline= np.mean(rewards)
+    elif 'group' in ad_baseline.lower():       #group은 group에서의 biniary score의 mean
+        baseline=mean
+    elif 'zero' in ad_baseline.lower():
+        baseline=0
+    elif 'rloo' in ad_baseline.lower():
+        baseline=rloo_mean
+
+    advantages = [ d - baseline for d in discounted]
+
+
+
+    results = []
+    for (start, end, label), ret, adv in zip(intervals, discounted, advantages):
+        results.append({
+            "start": start,
+            "end": end,
+            "label": label,
+            "immediate_reward": label,
+            "discounted_return": ret,
+            "advantage": adv
+        })
+    o = {1: 0} if any(r['label'] == 1 for r in results) else {delta1: 0, delta2: 1}
+    results.sort(key=lambda x: (o.get(x['label'], len(o)), x['start']))
+
+    return results,
+
+def compute_potentials(
+    deduped: List[Tuple[Any, Any, Any]],
+    delta2,
+    gamma: float = 0.9,
+    potent_type= None,
+    potent_positive=None,
+    pass_score=None,
+    shift_potential=None
+) -> List[Tuple[Any, Any, Any, float, float]]:
+    """
+    Return a list where each interval tuple is extended with:
+        (start, end, label, value, potential)
+
+    value      = v_i  = -distance/n,  where distance is
+                • first_delta2_idx - i  if delta2 exists and i < first_delta2_idx
+                • 0                     if i >= first_delta2_idx
+                • (n - i)               if no delta2 exists
+    potential  = F_i = (v_{i+1} - v_i) * (1 + gamma*(n - i - 1))
+                with v_{n} := 0 for the last element.
+
+    Parameters
+    ----------
+    deduped : list of (start, end, label)
+              Must already be sorted and de‑duplicated.
+    delta2  : the special label that stops the distance count.
+    gamma   : slope‑scaling factor (default 0.1).
+    """
+    n = len(deduped)
+    if n == 0:
+        return []
+
+    # locate first delta2
+    try:
+        first_delta_idx = next(i for i, (_, _, lbl) in enumerate(deduped) if lbl == delta2)
+        has_delta2 = True
+    except StopIteration:
+        first_delta_idx = None
+        has_delta2 = False
+
+    # pre‑compute value (v) for each index
+    values: List[float] = []
+    if potent_positive:
+        for i in range(n):
+            if pass_score == 1:
+                if has_delta2:
+                    dist = max(first_delta_idx - i, 0)
+                else:
+                    dist = n - i
+                if 'distance_to_goal' in potent_type:
+                    values.append(-dist / n)
+                elif 'monotone_growth' in potent_type:
+                    values.append(-(dist / n) ** (0.5))
+                elif 'normalized_exponential' in potent_type:
+                    lam = 3.0  # config knob
+                    denom = 1.0 - math.exp(-lam)
+                    p = dist / n  # progress value in [0,1]
+                    phi = -(1.0 - math.exp(-lam * p)) / denom  # Φ(p)
+                    values.append(phi)
+                elif "exponential_step" in potent_type:
+                    step= i+1
+                    num_step=n
+                    phi=math.exp(step-num_step)
+                    values.append(phi)
+            else:
+                values.append(0)
+
+
+    else:
+        for i in range(n):
+            if has_delta2:
+                dist = max(first_delta_idx - i, 0)
+            else:
+                dist = n - i
+            if 'distance_to_goal' in potent_type:
+                values.append(-dist / n)
+            elif 'monotone_growth' in potent_type:
+                values.append(-(dist / n)**(0.5))
+            elif 'normalized_exponential' in potent_type:
+                lam = 3.0  #config knob
+                denom = 1.0 - math.exp(-lam)
+                p = dist / n  # progress value in [0,1]
+                phi = -(1.0 - math.exp(-lam  * p)) / denom  # Φ(p)
+                values.append(phi)
+            elif "exponential_step" in potent_type:
+                step = i + 1
+                num_step = n
+                if deduped[i][2]==delta2:
+                    phi=-math.exp(step - num_step)
+                else:
+                    phi = math.exp(step - num_step)
+                values.append(phi)
+
+
+
+    if 'monotone_growth' in potent_type:
+        gamma=1
+
+    # compute potentials
+    potentials: List[float] = []
+    if shift_potential:
+        for i in range(n):
+            v_now = values[i]
+            v_prev = values[i - 1] if i > 0 else 0.0
+            diff = gamma * v_now - v_prev
+            potentials.append(diff)
+
+
+    else:
+        for i in range(n):
+            v_now = values[i]
+            v_next = values[i + 1] if i < n - 1 else 0.0
+            diff = gamma *v_next - v_now
+            #coef = 1 + gamma * (n - i - 1)
+            potentials.append(diff)
+
+    # build extended tuples
+    extended = [
+        (s, e, lbl, val, pot)
+        for (s, e, lbl), val, pot in zip(deduped, values, potentials)
+    ]
+    #print("extended_node",extended )
+    return extended
+
+
+def delta_value_compute_returns_tree(
+        full_text: str,
+        intervals: List[Interval],
+        tokenizer,
+        mean,
+        ad_baseline,
+        delta1,
+        delta2,
+        pass_score,
+        gamma: float = 0.9,
+        prompt_len: int = 0,
+        score_assign= "last",
+        adv_method=None,
+        rloo_mean=None,
+        potent_func=None,
+        potent_type=None,
+        potent_positive=None,
+        shift_potential=None
+):
+    """
+    Like compute_returns_no_split, but reward is propagated along the
+    containment tree instead of a flat, left‑to‑right timeline.
+    """
+    # 1. deduplicate & build the tree ----------------------------------------
+    intervals = delta_deduplicate_intervals(intervals,delta2)
+    if potent_func:
+        intervals= compute_potentials(intervals,delta2,gamma,potent_type,potent_positive,pass_score,shift_potential)
+        roots, all_nodes = build_potential_interval_tree(intervals)
+
+
+    else:
+        roots, all_nodes = build_interval_tree(intervals)
+    #print("value_reward")
+    # 2. tree‑discounted returns --------------------------------------------
+    for r in roots:
+        _dfs_compute_returns(r, gamma)
+
+    # 3. baseline & advantages ----------------------------------------------
+
+    values = [n["label"] for n in all_nodes]
+    results = []
+    if not values:  # <- nothing to do
+        return [],0  # (empty results, baseline 0)
+
+    if 'seq' in ad_baseline.lower():        #seq는 tactic score의 mean (first trial)
+        baseline= np.mean(values)
+    elif 'group' in ad_baseline.lower():       #group은 group에서의 biniary score의 mean
+        baseline=mean
+        #print("baseline!!",baseline)
+    elif 'zero' in ad_baseline.lower():
+        baseline=0
+    elif 'rloo' in ad_baseline.lower():
+        baseline=rloo_mean
+
+
+
+    if "label" in adv_method.lower():
+        if 'last' in score_assign.lower():
+            if potent_func:
+                for n in all_nodes:
+                    results.append(
+                        {
+                            "start": n["end"],
+                            "end": n["end"],
+                            "label": n["label"],
+                            "immediate_reward": n["label"],
+                            "discounted_tree_return": n["return"],
+                            "advantage": n["label"] + n["potential"]- baseline,
+                        }
+                    )
+            else:
+                for n in all_nodes:
+                    results.append(
+                        {
+                            "start": n["end"],
+                            "end": n["end"],
+                            "label": n["label"],
+                            "immediate_reward": n["label"],
+                            "discounted_tree_return": n["return"],
+                            "advantage": n["label"]  - baseline,
+
+                        }
+                    )
+
+        else:
+            if potent_func:
+                for n in all_nodes:
+                    results.append(
+                        {
+                            "start": n["start"],
+                            "end": n["end"],
+                            "label": n["label"],
+                            "immediate_reward": n["label"],
+                            "discounted_tree_return": n["return"],
+                            "advantage": n["label"] + n["potential"] - baseline,
+
+                        }
+                    )
+            else:
+                for n in all_nodes:
+                    results.append(
+                        {
+                            "start": n["start"],
+                            "end": n["end"],
+                            "label": n["label"],
+                            "immediate_reward": n["label"],
+                            "discounted_tree_return": n["return"],
+                            "advantage": n["label"] - baseline,
+
+                        }
+                    )
+
+        o = {1: 0} if any(r['label'] == 1 for r in results) else {delta1: 0, delta2: 1}
+        results.sort(key=lambda x: (o.get(x['label'], len(o)), x['start']))
+        mean_state_score = sum(r["label"] for r in results) / len(results)
+
+    else:
+        if 'last' in score_assign.lower():
+            for n in all_nodes:
+                results.append(
+                    {
+                        "start": n["end"],
+                        "end": n["end"],
+                        "label": n["label"],
+                        "immediate_reward": n["label"],
+                        "discounted_tree_return": n["return"],
+                        "advantage": n["return"] - baseline,
+                    }
+                )
+        else:
+            for n in all_nodes:
+                results.append(
+                    {
+                        "start": n["start"],
+                        "end": n["end"],
+                        "label": n["label"],
+                        "immediate_reward": n["label"],
+                        "discounted_tree_return": n["return"],
+                        "advantage": n["return"] - baseline,
+                    }
+                )
+
+        o = {1: 0} if any(r['label'] == 1 for r in results) else {delta1: 0, delta2: 1}
+        results.sort(key=lambda x: (o.get(x['label'], len(o)), x['start']))
+        mean_state_score = sum(r["return"] for r in results) / len(results)
+
+
+
+
+
+    return results,mean_state_score
+
+
+def fail_aware_compute_token_level_advantages(prompts, completions, outputs_list, tokenizer, extracted_codes, type, gamma,num_generation,delta1,delta2, ad_baseline, score_assign,adv_method,first_error,potent_func,potent_type,potent_positive,shift_potential):
+    """
+    Process each sample (prompt, completion, out_data, extracted_code) individually.
+    Returns lists (one per sample) of token_scores, token_texts, token_advantages, intervals_info, and baseline.
+    """
+
+    ad_baseline= ad_baseline
+    all_token_scores = []
+    all_token_texts = []
+
+    all_token_ids = []
+
+    binary_pass_score = [float(item["complete"]) for item in outputs_list]
+
+    n = len(binary_pass_score)
+    num_groups = math.ceil(n / num_generation)  # works even if it doesn't divide evenly
+
+    group_means = [
+        float(np.mean(binary_pass_score[g * num_generation: (g + 1) * num_generation]))
+        for g in range(num_groups)
+    ]
+
+    #total = sum(binary_pass_score)
+    #loo_means = [(total - s) / (n - 1) for s in binary_pass_score]
+    rloo_means = []  # will match `binary_pass_score` in length
+
+    for g in range(num_groups):
+        start = g * num_generation
+        end = min((g + 1) * num_generation, n)  # protect the last (possibly shorter) group
+        group = binary_pass_score[start:end]
+
+        k = len(group)
+        group_sum = sum(group)
+
+        # leave-one-out mean for every element in this group
+        rloo_means.extend(
+            (group_sum - x) / (k - 1) if k > 1 else float("nan")  # NaN if the group has only 1 item
+            for x in group
+        )
+
+    tactic_mean = []
+    for idx,(prompt, completion, out_data, snippet) in enumerate(zip(prompts, completions, outputs_list, extracted_codes)):
+        pass_score = binary_pass_score[idx]
+        baseline = group_means[idx // num_generation]
+        rloo_mean=rloo_means[idx]
+        #print("baseline",baseline)
+        full_text = prompt + completion
+        # Use the provided snippet (ensure it's a string)
+        prompt_len = len(prompt)
+        if not isinstance(snippet, str):
+            continue  # or raise an error
+        # 1. Gather intervals from out_data (in snippet coordinates)
+
+        if type == 'advantage':
+            snippet_intervals = delta_gather_intervals_no_split(snippet,
+                                                          out_data,pass_score,delta1,delta2,first_error)  # get the position of tactic and error in the extracted_code ex) error1=(1,10, -1), tactic1= (26,57,1)
+            # 2. (Optionally merge tactic intervals; here we assume no splitting is needed)
+            # For simplicity, we assume out_data gives the intervals correctly.
+            abs_intervals = convert_snippet_intervals_to_full_text(prompt, completion, snippet,
+                                                                   snippet_intervals)  # get the position of tactic and error in the full text (prompt+completion)
+
+            intervals_info, = delta_value_compute_returns_no_split(full_text, abs_intervals, tokenizer, baseline,ad_baseline,delta1, delta2,gamma=gamma,
+                                                       prompt_len=prompt_len,adv_method=adv_method,rloo_mean=rloo_mean)
+
+        if type == 'tree':
+            snippet_intervals = delta_gather_intervals_no_split(snippet,
+                                                          out_data,pass_score, delta1, delta2,first_error)  # get the position of tactic and error in the extracted_code ex) error1=(1,10, -1), tactic1= (26,57,1)
+            # 2. (Optionally merge tactic intervals; here we assume no splitting is needed)
+            # For simplicity, we assume out_data gives the intervals correctly.
+            abs_intervals = convert_snippet_intervals_to_full_text(prompt, completion, snippet,
+                                                                   snippet_intervals)  # get the position of tactic and error in the full text (prompt+completion)
+
+            intervals_info,mean_state_score = delta_value_compute_returns_tree(full_text, abs_intervals, tokenizer,baseline, ad_baseline,delta1, delta2,pass_score, gamma=gamma,
+                                                   prompt_len=prompt_len,score_assign=score_assign,adv_method=adv_method,rloo_mean=rloo_mean,potent_func=potent_func,potent_type=potent_type,potent_positive=potent_positive,shift_potential=shift_potential)
+            # if len(intervals_info)==0:
+            #    print("no interval",out_data)
+            #    print("no interbval snippet", snippet)
+            # 3. Tokenize full_text
+            # print("intervals_info", intervals_info)
+        tactic_mean.append(mean_state_score)
+        encoded = tokenizer(full_text, return_offsets_mapping=True, add_special_tokens=False)
+        offsets = encoded["offset_mapping"]
+        input_ids = encoded["input_ids"]
+        # 4. Build pos_scores at character level
+        pos_scores = [0] * len(full_text)
+        snippet_pos_scores = [0] * len(snippet)
+
+        token_scores = []
+        token_texts = []
+        token_id = []
+
+        if type == 'reward':
+            if "tactics" in out_data and out_data["tactics"]:
+                mark_char_scores_snippet(snippet_pos_scores, snippet, out_data["tactics"], default_to_error=False)
+            if "errors" in out_data and out_data["errors"]:
+                mark_char_scores_snippet(snippet_pos_scores, snippet, out_data["errors"], default_to_error=True)
+            # 5. Compute token-level average score (only for tokens in completion)
+
+            # 6. compute token level reward
+            snippet_index = full_text.find(snippet)
+            if snippet_index != -1:
+                for idx in range(len(snippet)):
+                    # Copy snippet_pos_scores into pos_scores
+                    if 0 <= snippet_index + idx < len(pos_scores):
+                        # If snippet_pos_scores[idx] == -1, that overrides
+                        # a +1. If pos_scores is already -1, keep it -1, etc.
+                        # We'll do: error overrides tactic if both exist.
+                        if pos_scores[snippet_index + idx] == -1:
+                            continue
+                        pos_scores[snippet_index + idx] = snippet_pos_scores[idx]
+
+            else:
+                # If snippet wasn't found, we just won't mark anything.
+                # Or you could log a warning, etc.
+                # print("no matching")
+                pass
+
+        # 7. Assign advantages to tokens based on intervals_info
+        elif type == 'advantage' or type == 'tree':
+            character_advantages = assign_advantage_to_tokens(full_text, offsets, snippet, intervals_info, prompt_len)
+
+        for tid, (start, end) in zip(input_ids, offsets):
+            if start >= prompt_len:
+                if type == 'reward':
+                    slice_scores = pos_scores[start:end]
+                    avg = sum(slice_scores) / len(slice_scores) if slice_scores else 0.0
+                    token_scores.append(avg)
+
+
+                elif type == 'advantage' or type == 'tree':
+                    slice_adv_scores = character_advantages[start:end]
+                    if 'last' in score_assign.lower():
+                        avg = slice_adv_scores[-1]  if slice_adv_scores else 0.0
+                    else:
+                        avg = sum(slice_adv_scores) / len(slice_adv_scores) if slice_adv_scores else 0.0
+                    token_scores.append(avg)
+                token_texts.append(full_text[start:end])
+                token_id.append(tid)
+        if len(token_id)<1024:
+            token_scores.append(0)
+            token_id.append(100001)
+            token_texts.append("eos")
+        #print("completion_ids_in_rewarwd_function",token_id)
+        #print("token_scores_in_rewarwd_function",token_scores)
+        all_token_scores.append(token_scores)
+        all_token_texts.append(token_texts)
+        all_token_ids.append(token_id)
+    tactic_mean=sum(tactic_mean)/len(tactic_mean)
+    return all_token_scores, all_token_texts, binary_pass_score, all_token_ids,tactic_mean
+
+
+
+
+
+
+
 def list_of_lists_to_padded_tensor(list_of_lists, padding_value=0):
     """
     Convert list of variable-length lists to a padded 2D Tensor
@@ -1225,14 +1868,24 @@ def rloo_list_of_lists_to_padded_tensor(list_of_lists, max_len, padding_value=0)
     #for i,seq in enumerate(list_of_lists):
     #    print("index",i)
     #    print("len(seq)",len(seq))
-    batch_size = len(list_of_lists)
-    padded_tensor = torch.full((batch_size, max_len), fill_value=padding_value, dtype=torch.float)
+    batch_max_len = max(len(seq) for seq in list_of_lists) if list_of_lists else 0
+    if max_len == batch_max_len:
+        max_len = batch_max_len
+        batch_size = len(list_of_lists)
+        padded_tensor = torch.full((batch_size, max_len), fill_value=padding_value, dtype=torch.float)
 
-    for i, seq in enumerate(list_of_lists):
-        # truncate if too long
-        length = min(len(seq), max_len)
-        # convert & slice to max_len, then assign
-        padded_tensor[i, :length] = torch.tensor(seq[:length], dtype=torch.float)
+        for i, seq in enumerate(list_of_lists):
+            length = len(seq)
+            padded_tensor[i, :length] = torch.tensor(seq, dtype=torch.float)
+    else:
+        batch_size = len(list_of_lists)
+        padded_tensor = torch.full((batch_size, max_len), fill_value=padding_value, dtype=torch.float)
+
+        for i, seq in enumerate(list_of_lists):
+            # truncate if too long
+            length = min(len(seq), max_len)
+            # convert & slice to max_len, then assign
+            padded_tensor[i, :length] = torch.tensor(seq[:length], dtype=torch.float)
 
     return padded_tensor
 
@@ -1243,7 +1896,15 @@ def extract_code(inputs):
     except:
         return "None"
 
-def lean4_value_reward(prompts, completions, processing_class,num_generation):
+def extract_code_stp(inputs):
+    try:
+        return re.search(r'```lean4\n(?s)(.*)', inputs, re.DOTALL).group(1)
+    except:
+        return "None"
+
+
+
+def lean4_value_reward(prompts, completions, processing_class,num_generation):      #lean score as value
     texts = [p + c for p, c in zip(prompts, completions)]
     #print("prompts",prompts)
     #print("completions",completions)
@@ -1252,7 +1913,7 @@ def lean4_value_reward(prompts, completions, processing_class,num_generation):
     #print("\n\n")
     lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=8, timeout=15,  memory_limit=10, name='verifier',extra_args=AttrDict(allTactics=True))
     #print("texts2:", texts)
-    extracted_code=[extract_code(result) for result in texts]
+    extracted_code=[extract_code_stp(result) for result in texts]
     request_id_list = lean4_scheduler.submit_all_request(extracted_code)
     #extract lean code in the output and give to lean4_scheduler.submit_all_request, after this, each input goes to queue, and request_id_list receive each id.
     #Worker processes (Lean4ServerProcess) are already running Since p.start() was called in Lean4ServerScheduler.__init__(), all workers are already in their run() loops.
@@ -1261,14 +1922,52 @@ def lean4_value_reward(prompts, completions, processing_class,num_generation):
     print(random.choice(outputs_list))
     #print("output_list",outputs_list)
     #print("rewarding start")
-    all_token_scores, all_token_texts, binary_pass_score  = value_compute_token_level_advantages(
-        prompts, completions, outputs_list,processing_class,extracted_code, "tree",0.9,num_generation)
+    all_token_scores, all_token_texts, binary_pass_score  = fail_aware_compute_token_level_advantages(
+        prompts, completions, outputs_list,processing_class,extracted_code, "tree",0.9,num_generation,-0.05,-0.1,ad_baseline="group")
+    #value_compute_token_level_advantages ,grouped_compute_token_level_advantages
+
 
     # 3. Convert to a padded tensor if desired
     #    Each row in padded_scores corresponds to one (prompt+completion) example
     #    The columns are the tokens in the completion portion
     padded_scores = list_of_lists_to_padded_tensor(all_token_scores, padding_value=0)
+
+
+
     binary_score = [float(item["complete"]) for item in outputs_list]
+
+
+
+
+
+
+    """
+    n = len(binary_score)
+    num_groups = math.ceil(n / num_generation)  # works even if it doesn't divide evenly
+
+    group_means = [
+        float(np.mean(binary_score[g * num_generation: (g + 1) * num_generation]))
+        for g in range(num_groups)
+    ]
+
+
+
+    for i, (scores, texts) in enumerate(zip(all_token_scores, all_token_texts)):
+        print(f"--- Completion #{i} ---")
+        if i ==0:
+            baseline = group_means[0 // num_generation]
+            print("baseline",baseline)
+            print("output_list",outputs_list[0])
+            print("completions",completions[0])
+            for token_str, sc in zip(texts, scores):
+                print(f"Token '{token_str}' => Score {sc:.2f}")
+
+
+    """
+
+
+
+
     #print("padded_scores",padded_scores.size())
     lean4_scheduler.close()
     return padded_scores ,binary_score
@@ -1285,21 +1984,21 @@ def lean4_grpo_reward(prompts, completions, **kwargs):
     #print("\n\n")
     lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=8, timeout=15,  memory_limit=10, name='verifier',extra_args=AttrDict(allTactics=True))
     #print("texts2:", texts)
-    extracted_code=[extract_code(result) for result in texts]
+    extracted_code=[extract_code_stp(result) for result in texts]
     request_id_list = lean4_scheduler.submit_all_request(extracted_code)
     #extract lean code in the output and give to lean4_scheduler.submit_all_request, after this, each input goes to queue, and request_id_list receive each id.
     #Worker processes (Lean4ServerProcess) are already running Since p.start() was called in Lean4ServerScheduler.__init__(), all workers are already in their run() loops.
     #As soon as a task is enqueued, the next available worker process automatically picks it up.
     outputs_list = lean4_scheduler.get_all_request_outputs(request_id_list)
-    print(random.choice(outputs_list))
+    #print(random.choice(outputs_list))
     binary_score = [float(item["complete"]) for item in outputs_list]
     lean4_scheduler.close()
     return binary_score
 
 
 
-def lean4_rloo_reward(texts, **kwargs):
-    #texts = [p + c for p, c in zip(prompts, completions)]
+def deepseek_lean4_grpo_reward (prompts, completions, **kwargs):
+    texts = [p + c for p, c in zip(prompts, completions)]
     #print("prompts",prompts)
     #print("completions",completions)
     #print("texts1:",texts)
@@ -1314,13 +2013,96 @@ def lean4_rloo_reward(texts, **kwargs):
     #As soon as a task is enqueued, the next available worker process automatically picks it up.
     outputs_list = lean4_scheduler.get_all_request_outputs(request_id_list)
     print(random.choice(outputs_list))
+    #print(random.choice(outputs_list))
+    binary_score = [float(item["complete"]) for item in outputs_list]
+    lean4_scheduler.close()
+    return binary_score
+
+
+def lean4_rloo_reward(texts, **kwargs):
+    #texts = [p + c for p, c in zip(prompts, completions)]
+    #print("prompts",prompts)
+    #print("completions",completions)
+    #print("texts1:",texts)
+    #print("type",type(texts[0]))
+    #print("\n\n")
+    lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=8, timeout=15,  memory_limit=10, name='verifier',extra_args=AttrDict(allTactics=True))
+    #print("texts2:", texts)
+    extracted_code=[extract_code_stp(result) for result in texts]
+    request_id_list = lean4_scheduler.submit_all_request(extracted_code)
+    #extract lean code in the output and give to lean4_scheduler.submit_all_request, after this, each input goes to queue, and request_id_list receive each id.
+    #Worker processes (Lean4ServerProcess) are already running Since p.start() was called in Lean4ServerScheduler.__init__(), all workers are already in their run() loops.
+    #As soon as a task is enqueued, the next available worker process automatically picks it up.
+    outputs_list = lean4_scheduler.get_all_request_outputs(request_id_list)
+    print(random.choice(outputs_list))
     binary_score = [float(item["complete"]) for item in outputs_list]
     lean4_scheduler.close()
     return binary_score
 
 
 
-def lean4_rloo_custom_reward(prompts, completions, processing_class,max_len,num_generation):
+def lean4_rloo_custom_reward(prompts, completions, processing_class,max_len,num_generation,delta1, delta2 ,adv_baseline, score_assign ,adv_method, parse_method,first_error,potent_func,potent_type,potent_positive,shift_potential):
+    texts = [p + c for p, c in zip(prompts, completions)]
+
+    lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=8, timeout=15, memory_limit=10, name='verifier',
+                                           extra_args=AttrDict(allTactics=True))
+    # print("texts2:", texts)
+    extracted_code = [extract_code_stp(result) for result in texts]
+    request_id_list = lean4_scheduler.submit_all_request(extracted_code)
+    # extract lean code in the output and give to lean4_scheduler.submit_all_request, after this, each input goes to queue, and request_id_list receive each id.
+    # Worker processes (Lean4ServerProcess) are already running Since p.start() was called in Lean4ServerScheduler.__init__(), all workers are already in their run() loops.
+    # As soon as a task is enqueued, the next available worker process automatically picks it up.
+    outputs_list = lean4_scheduler.get_all_request_outputs(request_id_list)
+    print(random.choice(outputs_list))
+    # print("output_list",outputs_list)
+    # print("rewarding start")
+    all_token_scores, all_token_texts, binary_pass_score,all_token_ids,tactic_mean = fail_aware_compute_token_level_advantages(
+        prompts, completions, outputs_list,processing_class,extracted_code, parse_method,0.9,num_generation,delta1,delta2,ad_baseline=adv_baseline, score_assign=score_assign,adv_method=adv_method, first_error=first_error,potent_func=potent_func,potent_type=potent_type,potent_positive=potent_positive,shift_potential=shift_potential)
+    #value_compute_token_level_advantages ,grouped_compute_token_level_advantages
+
+    # 3. Convert to a padded tensor if desired
+    #    Each row in padded_scores corresponds to one (prompt+completion) example
+    #    The columns are the tokens in the completion portion
+    padded_scores = rloo_list_of_lists_to_padded_tensor(all_token_scores,max_len,padding_value=0)
+    binary_score = [float(item["complete"]) for item in outputs_list]
+    #print("padded_scores",padded_scores.size())
+    lean4_scheduler.close()
+
+
+
+
+    """
+    n = len(binary_score)
+    num_groups = math.ceil(n / num_generation)  # works even if it doesn't divide evenly
+
+    group_means = [
+        float(np.mean(binary_score[g * num_generation: (g + 1) * num_generation]))
+        for g in range(num_groups)
+    ]
+
+
+
+    for i, (scores, texts, ids) in enumerate(zip(all_token_scores, all_token_texts,all_token_ids)):
+        print(f"--- Completion #{i} ---")
+        if i ==0:
+            baseline = group_means[0 // num_generation]
+            print("baseline",baseline)
+            print("output_list",outputs_list[0])
+            print("completions",completions[0])
+            for idx, (token_str, sc, id) in enumerate(zip(texts, scores,ids)):
+                print(f"{idx} Token '{token_str} Token_id {id}' => Score {sc:.2f}")
+    """
+    
+
+
+
+
+    return padded_scores, binary_score,all_token_ids,tactic_mean
+
+
+
+
+def deepseek_lean4_rloo_custom_reward(prompts, completions, processing_class,max_len,num_generation,delta1, delta2 ,adv_baseline, score_assign ,adv_method, parse_method,first_error,potent_func,potent_type,potent_positive,shift_potential):
     texts = [p + c for p, c in zip(prompts, completions)]
 
     lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=8, timeout=15, memory_limit=10, name='verifier',
@@ -1335,17 +2117,53 @@ def lean4_rloo_custom_reward(prompts, completions, processing_class,max_len,num_
     print(random.choice(outputs_list))
     # print("output_list",outputs_list)
     # print("rewarding start")
-    all_token_scores, all_token_texts, binary_pass_score = compute_token_level_advantages(
-        prompts, completions, outputs_list, processing_class, extracted_code, "tree", 0.9)
+    all_token_scores, all_token_texts, binary_pass_score,all_token_ids,tactic_mean = fail_aware_compute_token_level_advantages(
+        prompts, completions, outputs_list,processing_class,extracted_code, parse_method,0.9,num_generation,delta1,delta2,ad_baseline=adv_baseline, score_assign=score_assign,adv_method=adv_method, first_error=first_error,potent_func=potent_func,potent_type=potent_type,potent_positive=potent_positive,shift_potential=shift_potential)
+    #value_compute_token_level_advantages ,grouped_compute_token_level_advantages
 
     # 3. Convert to a padded tensor if desired
     #    Each row in padded_scores corresponds to one (prompt+completion) example
     #    The columns are the tokens in the completion portion
-    padded_scores = rloo_list_of_lists_to_padded_tensor(all_token_scores, max_len,padding_value=0)
+    padded_scores = rloo_list_of_lists_to_padded_tensor(all_token_scores,max_len,padding_value=0)
     binary_score = [float(item["complete"]) for item in outputs_list]
-    # print("padded_scores",padded_scores.size())
+    #print("padded_scores",padded_scores.size())
     lean4_scheduler.close()
-    return padded_scores, binary_score
+
+
+
+    """
+
+    n = len(binary_score)
+    num_groups = math.ceil(n / num_generation)  # works even if it doesn't divide evenly
+
+    group_means = [
+        float(np.mean(binary_score[g * num_generation: (g + 1) * num_generation]))
+        for g in range(num_groups)
+    ]
+
+
+
+    for i, (scores, texts, ids) in enumerate(zip(all_token_scores, all_token_texts,all_token_ids)):
+        print(f"--- Completion #{i} ---")
+        if i ==0:
+            baseline = group_means[0 // num_generation]
+            print("baseline",baseline)
+            print("output_list",outputs_list[0])
+            print("completions",completions[0])
+            for idx, (token_str, sc, id) in enumerate(zip(texts, scores,ids)):
+                print(f"{idx} Token '{token_str} Token_id {id}' => Score {sc:.2f}")
+
+    """
+
+
+
+
+
+
+
+    return padded_scores, binary_score,all_token_ids,tactic_mean
+
+
 
 
 

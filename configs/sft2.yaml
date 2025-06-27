@@ -19,8 +19,8 @@ gradient_accumulation_steps: 16
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: False
-hub_model_id: Minsukim/DeepSeek-Prover-V1.5-7B_sft_stp_250k_epoch2
-output_dir: /projects/minsu/ATP_checkpoints/DeepSeek-Prover-V1.5-7B_sft_stp_250k_epoch2
+hub_model_id: Minsukim/DeepSeek-Prover-V1.5-7B_sft_stp_500k
+output_dir: /projects/minsu/ATP_checkpoints/DeepSeek-Prover-V1.5-7B_sft_stp_500k
 learning_rate: 1.0e-05
 log_level: info
 logging_steps: 5
@@ -28,7 +28,7 @@ logging_strategy: steps
 lr_scheduler_type: cosine
 max_length: 2048    #2048
 max_steps: -1
-num_train_epochs: 2
+num_train_epochs: 1
 overwrite_output_dir: true
 per_device_train_batch_size: 8
 remove_unused_columns: true

@@ -16,10 +16,11 @@ from .data_utils import (
 
 from .model_utils import (
     get_quantization_config,
-    get_peft_config
+    get_peft_config,
+    prepare_deepspeed
 
 )
-
+from .vllm_utils import vllm_single_gpu_patch
 __all__ = [
     "DataArguments",
     "H4ArgumentParser",
@@ -34,4 +35,6 @@ __all__ = [
     "get_peft_config",
     "RLOOConfig",
     "CUSTOMRLOOConfig",
+    "prepare_deepspeed",
+    "vllm_single_gpu_patch"
 ]
