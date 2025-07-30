@@ -332,6 +332,7 @@ class CUSTOMConfig(trl.GRPOConfig):
     negative_dropout :Optional[bool]=field(default=False)
     dropout_rate: Optional[float]=field(default=0.5)
     alpha_advantage: Optional[float]=field(default=0.5)
+    delta0: Optional[float]=field(default=0.1)
     delta1: Optional[float]=field(default=-0.05)
     delta2: Optional[float] = field(default=-0.1)
     adv_baseline: Optional[str]=field(default="group")
@@ -345,6 +346,17 @@ class CUSTOMConfig(trl.GRPOConfig):
     potent_type: Optional[str] = field(default="first_err_dist")
     potent_positive:Optional[bool]=field(default=False)
     shift_potential:Optional[bool]=field(default=False)
+    potent_coef: Optional[float] = field(default=0.1)
+    entropy_adv: Optional[bool]=field(default=False)
+    entropy_reg: Optional[bool]=field(default=False)
+    entropy_coef: Optional[float] = field(default=0.01)
+    entropy_position: Optional[str] = field(default="start")
+    asymmetric:Optional[bool]=field(default=False)
+    tactic_distribution:Optional[bool]=field(default=True)
+    positive_entropy_drop:Optional[bool]=field(default=True)
+    divide_weight_method: Optional[str] = field(default="mean")
+    first_tactic_token:Optional[bool]=field(default=True)
+    advantage_distribute_top_k:Optional[bool]=field(default=True)
 @dataclass
 class GRPOConfig(trl.GRPOConfig):
 

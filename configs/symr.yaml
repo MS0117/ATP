@@ -19,8 +19,8 @@ gradient_accumulation_steps: 8
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: true
-hub_model_id: Minsukim/stp_grpo_custom_only_potential_exponential_step_positive_1.0_last_groupmean_-0.05_-0.1_stp_data
-output_dir: /projects/minsu/ATP_checkpoints/stp_grpo_custom_only_potential_exponential_step_positive_1.0_last_groupmean_-0.05_-0.1_stp_data
+hub_model_id: Minsukim/stp_grpo_custom_entropy_mean_first_distribute_start_zerobaseline_1_-0.1_-1_stp_data_1024
+output_dir: /projects/minsu/ATP_checkpoints/stp_grpo_custom_entropy_mean_first_distribute_start_zerobaseline_1_-0.1_-1_stp_data_1024
 
 log_level: info
 logging_steps: 10
@@ -40,9 +40,9 @@ report_to:
 
 save_strategy: "steps"
 save_steps: 100
-save_total_limit: 5
+save_only_model: true
+#save_total_limit: 5
 hub_strategy: "end"
-
 
 
 seed: 42
@@ -81,25 +81,46 @@ whiten_rewards: false
 
 
 alpha_advantage: 1
-delta1: -0.05
-delta2: -0.1
-adv_baseline: "group"
-score_assign: "last"  #last ,all
+delta0: 1
+delta1: -0.1
+delta2: -1
+adv_baseline: "zero"
+score_assign: "all"  #last ,all,mix,start
 adv_method: "label"    #return or label
 parse_method: "tree"
-weighted_adv: true   #true or false
+weighted_adv: false   #true or false
 first_error: true  #true or false
 
 
-potent_func: true
-potent_type: "exponential_step" #"distance_to_goal" #"monotone_growth" "normalized_exponential"
+potent_func: false
+potent_type: "exponential_step" #"exponential_step" #"distance_to_goal" #"monotone_growth" "normalized_exponential" "proof_step"
 potent_positive: true
-shift_potential: true
+shift_potential: true   #exponential "proof_step" should be true "proof_step"
+potent_coef: 0.5
 
 #delta_clip: none
 
 negative_dropout : false
 dropout_rate: 0.5
+
+
+entropy_adv: false
+entropy_reg: false
+entropy_coef: 0.1
+entropy_position: "all"
+
+
+asymmetric: false
+tactic_distribution: true
+
+
+positive_entropy_drop: true
+divide_weight_method: mean
+first_tactic_token: true
+advantage_distribute_top_k: false
+
+
+
 
 # Hub
 push_to_hub: true

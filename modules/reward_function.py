@@ -660,18 +660,24 @@ def assign_advantage_to_tokens(full_text, offsets, snippet, intervals_info, prom
     """
 
     character_adv = [0] * len(full_text)
+    character_mask = [0] * len(full_text)
+    character_tid = [-1] * len(full_text)
 
     # (B) Find snippet in the full_text, so we can map snippet scores
     snippet_index = full_text.find(snippet)
     if snippet_index != -1:
-        for info in intervals_info:
+        for t_id,info in enumerate(intervals_info):
             int_start = info["start"]
             int_end = info["end"]
+            ent_start= info["entropy_start"]
+            ent_end= info["entropy_end"]
             try:
                 adv = info["advantage"]  # or use info["advantage"] if computed separately  #discounted_return, label
             except:
                 adv = info["advantage"]
             character_adv[int_start:int_end + 1] = [adv] * (int_end - int_start + 1)
+            character_mask[ent_start:ent_end + 1] = [1] * (ent_end - ent_start + 1)
+            character_tid[int_start:int_end + 1] = [t_id] * (int_end - int_start + 1)
 
 
     else:
@@ -680,7 +686,7 @@ def assign_advantage_to_tokens(full_text, offsets, snippet, intervals_info, prom
         # print("no matching")
         pass
 
-    return character_adv
+    return character_adv,character_mask,character_tid
 
 
 def compute_token_level_advantages(prompts, completions, outputs_list, tokenizer, extracted_codes, type, gamma):
@@ -1274,7 +1280,7 @@ def delta_deduplicate_intervals(intervals,delta2):
 
 def delta_gather_intervals_no_split(
         snippet_text, out_data,
-        pass_score, delta1, delta2,
+        pass_score, delta0, delta1, delta2,
         first_error: bool
 ):
     """
@@ -1329,7 +1335,7 @@ def delta_gather_intervals_no_split(
                 start = to_abs(t.get("pos") or t.get("endPos"))
                 end   = to_abs(t.get("endPos") or t.get("pos"))
                 if start is not None and end is not None and end > start:
-                    intervals.append((start, end, 1))
+                    intervals.append((start, end, delta0))
             for e in out_data.get("errors", []):
                 start = to_abs(e.get("pos") or e.get("endPos"))
                 end   = to_abs(e.get("endPos") or e.get("pos"))
@@ -1416,7 +1422,8 @@ def compute_potentials(
     potent_type= None,
     potent_positive=None,
     pass_score=None,
-    shift_potential=None
+    shift_potential=None,
+    potent_coef=None
 ) -> List[Tuple[Any, Any, Any, float, float]]:
     """
     Return a list where each interval tuple is extended with:
@@ -1500,6 +1507,14 @@ def compute_potentials(
                 else:
                     phi = math.exp(step - num_step)
                 values.append(phi)
+            elif "proof_step" in potent_type:
+                step = i + 1
+                num_step = n
+                phi=step/num_step
+                if pass_score == 1:
+                    values.append(phi)
+                else:
+                    values.append(-phi)
 
 
 
@@ -1513,7 +1528,7 @@ def compute_potentials(
             v_now = values[i]
             v_prev = values[i - 1] if i > 0 else 0.0
             diff = gamma * v_now - v_prev
-            potentials.append(diff)
+            potentials.append(potent_coef*diff)
 
 
     else:
@@ -1522,7 +1537,7 @@ def compute_potentials(
             v_next = values[i + 1] if i < n - 1 else 0.0
             diff = gamma *v_next - v_now
             #coef = 1 + gamma * (n - i - 1)
-            potentials.append(diff)
+            potentials.append(potent_coef*diff)
 
     # build extended tuples
     extended = [
@@ -1550,7 +1565,9 @@ def delta_value_compute_returns_tree(
         potent_func=None,
         potent_type=None,
         potent_positive=None,
-        shift_potential=None
+        shift_potential=None,
+        potent_coef=None,
+        entropy_position=None
 ):
     """
     Like compute_returns_no_split, but reward is propagated along the
@@ -1559,7 +1576,7 @@ def delta_value_compute_returns_tree(
     # 1. deduplicate & build the tree ----------------------------------------
     intervals = delta_deduplicate_intervals(intervals,delta2)
     if potent_func:
-        intervals= compute_potentials(intervals,delta2,gamma,potent_type,potent_positive,pass_score,shift_potential)
+        intervals= compute_potentials(intervals,delta2,gamma,potent_type,potent_positive,pass_score,shift_potential,potent_coef)
         roots, all_nodes = build_potential_interval_tree(intervals)
 
 
@@ -1616,34 +1633,120 @@ def delta_value_compute_returns_tree(
 
                         }
                     )
+        if 'all' in score_assign.lower():
+            for n in all_nodes:
+                # 1) entropy 위치에 따라 ent_start/ent_end 결정
+                if entropy_position.lower() == 'all':
+                    ent_start, ent_end = n['start'], n['end']
+                elif entropy_position.lower() == 'start':
+                    ent_start = ent_end = n['start']
+                else:
+                    ent_start = ent_end = None
 
-        else:
-            if potent_func:
-                for n in all_nodes:
-                    results.append(
-                        {
-                            "start": n["start"],
-                            "end": n["end"],
-                            "label": n["label"],
-                            "immediate_reward": n["label"],
-                            "discounted_tree_return": n["return"],
-                            "advantage": n["label"] + n["potential"] - baseline,
+                # 2) advantage 계산 (potent_func 여부에 따라)
+                if potent_func:
+                    adv = n['label'] + n['potential'] - baseline
+                else:
+                    adv = n['label'] - baseline
 
-                        }
-                    )
+                # 3) 결과 append (end만 n['end'] 로 다름)
+                results.append({
+                    "start": n["start"],
+                    "end": n["end"],
+                    "entropy_start": ent_start,
+                    "entropy_end": ent_end,
+                    "label": n["label"],
+                    "immediate_reward": n["label"],
+                    "discounted_tree_return": n["return"],
+                    "advantage": adv,
+                })
+        elif 'start' in score_assign.lower():
+            for n in all_nodes:
+                # entropy 위치에 따라 분기
+                if entropy_position.lower() == 'all':
+                    ent_start = n['start']
+                    ent_end = n['end']
+                elif entropy_position.lower() == 'start':
+                    ent_start = n['start']
+                    ent_end = n['start']
+                else:
+                    # 필요하다면 다른 옵션 처리
+                    ent_start = None
+                    ent_end = None
+
+                # advantage 계산
+                if potent_func:
+                    adv = n['label'] + n['potential'] - baseline
+                else:
+                    adv = n['label'] - baseline
+
+                results.append({
+                    "start": n["start"],
+                    "end": n["start"],
+                    "entropy_start": ent_start,
+                    "entropy_end": ent_end,
+                    "label": n["label"],
+                    "immediate_reward": n["label"],
+                    "discounted_tree_return": n["return"],
+                    "advantage": adv,
+                })
+
+        elif 'mix' in score_assign.lower():
+            if pass_score==1:
+                if potent_func:
+                    for n in all_nodes:
+                        results.append(
+                            {
+                                "start": n["start"],
+                                "end": n["end"],
+                                "label": n["label"],
+                                "immediate_reward": n["label"],
+                                "discounted_tree_return": n["return"],
+                                "advantage": n["label"] + n["potential"] - baseline,
+
+                            }
+                        )
+                else:
+                    for n in all_nodes:
+                        results.append(
+                            {
+                                "start": n["start"],
+                                "end": n["end"],
+                                "label": n["label"],
+                                "immediate_reward": n["label"],
+                                "discounted_tree_return": n["return"],
+                                "advantage": n["label"] - baseline,
+
+                            }
+                        )
             else:
-                for n in all_nodes:
-                    results.append(
-                        {
-                            "start": n["start"],
-                            "end": n["end"],
-                            "label": n["label"],
-                            "immediate_reward": n["label"],
-                            "discounted_tree_return": n["return"],
-                            "advantage": n["label"] - baseline,
+                if potent_func:
+                    for n in all_nodes:
+                        results.append(
+                            {
+                                "start": n["end"],
+                                "end": n["end"],
+                                "label": n["label"],
+                                "immediate_reward": n["label"],
+                                "discounted_tree_return": n["return"],
+                                "advantage": n["label"] + n["potential"] - baseline,
 
-                        }
-                    )
+                            }
+                        )
+                else:
+                    for n in all_nodes:
+                        results.append(
+                            {
+                                "start": n["end"],
+                                "end": n["end"],
+                                "label": n["label"],
+                                "immediate_reward": n["label"],
+                                "discounted_tree_return": n["return"],
+                                "advantage": n["label"] - baseline,
+
+                            }
+                        )
+
 
         o = {1: 0} if any(r['label'] == 1 for r in results) else {delta1: 0, delta2: 1}
         results.sort(key=lambda x: (o.get(x['label'], len(o)), x['start']))
@@ -1686,7 +1789,7 @@ def delta_value_compute_returns_tree(
     return results,mean_state_score
 
 
-def fail_aware_compute_token_level_advantages(prompts, completions, outputs_list, tokenizer, extracted_codes, type, gamma,num_generation,delta1,delta2, ad_baseline, score_assign,adv_method,first_error,potent_func,potent_type,potent_positive,shift_potential):
+def fail_aware_compute_token_level_advantages(prompts, completions, outputs_list, tokenizer, extracted_codes, type, gamma,num_generation,delta0,delta1,delta2, ad_baseline, score_assign,adv_method,first_error,potent_func,potent_type,potent_positive,shift_potential,potent_coef,entropy_position):
     """
     Process each sample (prompt, completion, out_data, extracted_code) individually.
     Returns lists (one per sample) of token_scores, token_texts, token_advantages, intervals_info, and baseline.
@@ -1695,8 +1798,9 @@ def fail_aware_compute_token_level_advantages(prompts, completions, outputs_list
     ad_baseline= ad_baseline
     all_token_scores = []
     all_token_texts = []
-
+    all_adv_masks = []
     all_token_ids = []
+    all_tactic_ids=[]
 
     binary_pass_score = [float(item["complete"]) for item in outputs_list]
 
@@ -1741,7 +1845,7 @@ def fail_aware_compute_token_level_advantages(prompts, completions, outputs_list
 
         if type == 'advantage':
             snippet_intervals = delta_gather_intervals_no_split(snippet,
-                                                          out_data,pass_score,delta1,delta2,first_error)  # get the position of tactic and error in the extracted_code ex) error1=(1,10, -1), tactic1= (26,57,1)
+                                                          out_data,pass_score,delta0,delta1,delta2,first_error)  # get the position of tactic and error in the extracted_code ex) error1=(1,10, -1), tactic1= (26,57,1)
             # 2. (Optionally merge tactic intervals; here we assume no splitting is needed)
             # For simplicity, we assume out_data gives the intervals correctly.
             abs_intervals = convert_snippet_intervals_to_full_text(prompt, completion, snippet,
@@ -1752,14 +1856,14 @@ def fail_aware_compute_token_level_advantages(prompts, completions, outputs_list
 
         if type == 'tree':
             snippet_intervals = delta_gather_intervals_no_split(snippet,
-                                                          out_data,pass_score, delta1, delta2,first_error)  # get the position of tactic and error in the extracted_code ex) error1=(1,10, -1), tactic1= (26,57,1)
+                                                          out_data,pass_score, delta0, delta1, delta2,first_error)  # get the position of tactic and error in the extracted_code ex) error1=(1,10, -1), tactic1= (26,57,1)
             # 2. (Optionally merge tactic intervals; here we assume no splitting is needed)
             # For simplicity, we assume out_data gives the intervals correctly.
             abs_intervals = convert_snippet_intervals_to_full_text(prompt, completion, snippet,
                                                                    snippet_intervals)  # get the position of tactic and error in the full text (prompt+completion)
 
             intervals_info,mean_state_score = delta_value_compute_returns_tree(full_text, abs_intervals, tokenizer,baseline, ad_baseline,delta1, delta2,pass_score, gamma=gamma,
-                                                   prompt_len=prompt_len,score_assign=score_assign,adv_method=adv_method,rloo_mean=rloo_mean,potent_func=potent_func,potent_type=potent_type,potent_positive=potent_positive,shift_potential=shift_potential)
+                                                   prompt_len=prompt_len,score_assign=score_assign,adv_method=adv_method,rloo_mean=rloo_mean,potent_func=potent_func,potent_type=potent_type,potent_positive=potent_positive,shift_potential=shift_potential,potent_coef=potent_coef,entropy_position=entropy_position)
             # if len(intervals_info)==0:
             #    print("no interval",out_data)
             #    print("no interbval snippet", snippet)
@@ -1774,8 +1878,10 @@ def fail_aware_compute_token_level_advantages(prompts, completions, outputs_list
         snippet_pos_scores = [0] * len(snippet)
 
         token_scores = []
+        token_masks=[]
         token_texts = []
         token_id = []
+        token_tactic_ids=[]
 
         if type == 'reward':
             if "tactics" in out_data and out_data["tactics"]:
@@ -1805,7 +1911,7 @@ def fail_aware_compute_token_level_advantages(prompts, completions, outputs_list
 
         # 7. Assign advantages to tokens based on intervals_info
         elif type == 'advantage' or type == 'tree':
-            character_advantages = assign_advantage_to_tokens(full_text, offsets, snippet, intervals_info, prompt_len)
+            character_advantages, character_mask,character_tid = assign_advantage_to_tokens(full_text, offsets, snippet, intervals_info, prompt_len)
 
         for tid, (start, end) in zip(input_ids, offsets):
             if start >= prompt_len:
@@ -1819,22 +1925,49 @@ def fail_aware_compute_token_level_advantages(prompts, completions, outputs_list
                     slice_adv_scores = character_advantages[start:end]
                     if 'last' in score_assign.lower():
                         avg = slice_adv_scores[-1]  if slice_adv_scores else 0.0
-                    else:
+                    elif 'start' in score_assign.lower():
+                        avg = slice_adv_scores[0]  if slice_adv_scores else 0.0
+                    elif 'all' in score_assign.lower():
                         avg = sum(slice_adv_scores) / len(slice_adv_scores) if slice_adv_scores else 0.0
+                    elif 'mix' in score_assign.lower():
+                        if pass_score==1:
+                            avg = sum(slice_adv_scores) / len(slice_adv_scores) if slice_adv_scores else 0.0
+                        else:
+                            avg = slice_adv_scores[-1] if slice_adv_scores else 0.0
                     token_scores.append(avg)
+
+
+
+
+                slice_msk = character_mask[start:end]
+                assigned = 1 if any(slice_msk) else 0
+                token_masks.append(assigned)
+
+
+                slice_tids = character_tid[start:end]
+                # pick the most frequent id in that slice (ignores -1)
+                valid_tids = [t for t in slice_tids if t >= 0]
+                t_id = max(valid_tids, key=valid_tids.count) if valid_tids else -1
+                token_tactic_ids.append(t_id)
+
+
                 token_texts.append(full_text[start:end])
                 token_id.append(tid)
         if len(token_id)<1024:
             token_scores.append(0)
             token_id.append(100001)
             token_texts.append("eos")
-        #print("completion_ids_in_rewarwd_function",token_id)
+            token_masks.append(0)
+            token_tactic_ids.append(-1)
+            #print("completion_ids_in_rewarwd_function",token_id)
         #print("token_scores_in_rewarwd_function",token_scores)
         all_token_scores.append(token_scores)
         all_token_texts.append(token_texts)
         all_token_ids.append(token_id)
+        all_adv_masks.append(token_masks)
+        all_tactic_ids.append(token_tactic_ids)
     tactic_mean=sum(tactic_mean)/len(tactic_mean)
-    return all_token_scores, all_token_texts, binary_pass_score, all_token_ids,tactic_mean
+    return all_token_scores, all_token_texts, binary_pass_score, all_token_ids,tactic_mean,all_adv_masks,all_tactic_ids
 
 
 
@@ -2041,7 +2174,7 @@ def lean4_rloo_reward(texts, **kwargs):
 
 
 
-def lean4_rloo_custom_reward(prompts, completions, processing_class,max_len,num_generation,delta1, delta2 ,adv_baseline, score_assign ,adv_method, parse_method,first_error,potent_func,potent_type,potent_positive,shift_potential):
+def lean4_rloo_custom_reward(prompts, completions, processing_class,max_len,num_generation,delta0, delta1, delta2 ,adv_baseline, score_assign ,adv_method, parse_method,first_error,potent_func,potent_type,potent_positive,shift_potential,potent_coef,entropy_position):
     texts = [p + c for p, c in zip(prompts, completions)]
 
     lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=8, timeout=15, memory_limit=10, name='verifier',
@@ -2056,14 +2189,16 @@ def lean4_rloo_custom_reward(prompts, completions, processing_class,max_len,num_
     print(random.choice(outputs_list))
     # print("output_list",outputs_list)
     # print("rewarding start")
-    all_token_scores, all_token_texts, binary_pass_score,all_token_ids,tactic_mean = fail_aware_compute_token_level_advantages(
-        prompts, completions, outputs_list,processing_class,extracted_code, parse_method,0.9,num_generation,delta1,delta2,ad_baseline=adv_baseline, score_assign=score_assign,adv_method=adv_method, first_error=first_error,potent_func=potent_func,potent_type=potent_type,potent_positive=potent_positive,shift_potential=shift_potential)
+    all_token_scores, all_token_texts, binary_pass_score,all_token_ids,tactic_mean,all_adv_masks,all_tactic_ids = fail_aware_compute_token_level_advantages(
+        prompts, completions, outputs_list,processing_class,extracted_code, parse_method,0.9,num_generation,delta0,delta1,delta2,ad_baseline=adv_baseline, score_assign=score_assign,adv_method=adv_method, first_error=first_error,potent_func=potent_func,potent_type=potent_type,potent_positive=potent_positive,shift_potential=shift_potential,potent_coef=potent_coef,entropy_position=entropy_position)
     #value_compute_token_level_advantages ,grouped_compute_token_level_advantages
 
     # 3. Convert to a padded tensor if desired
     #    Each row in padded_scores corresponds to one (prompt+completion) example
     #    The columns are the tokens in the completion portion
     padded_scores = rloo_list_of_lists_to_padded_tensor(all_token_scores,max_len,padding_value=0)
+    all_adv_masks= rloo_list_of_lists_to_padded_tensor(all_adv_masks,max_len,padding_value=0)
+    all_tactic_ids=rloo_list_of_lists_to_padded_tensor(all_tactic_ids,max_len,padding_value=-1)
     binary_score = [float(item["complete"]) for item in outputs_list]
     #print("padded_scores",padded_scores.size())
     lean4_scheduler.close()
@@ -2082,27 +2217,26 @@ def lean4_rloo_custom_reward(prompts, completions, processing_class,max_len,num_
 
 
 
-    for i, (scores, texts, ids) in enumerate(zip(all_token_scores, all_token_texts,all_token_ids)):
+    for i, (scores, texts, ids,tactic_ids) in enumerate(zip(all_token_scores, all_token_texts,all_token_ids,all_tactic_ids)):
         print(f"--- Completion #{i} ---")
         if i ==0:
             baseline = group_means[0 // num_generation]
             print("baseline",baseline)
             print("output_list",outputs_list[0])
             print("completions",completions[0])
-            for idx, (token_str, sc, id) in enumerate(zip(texts, scores,ids)):
-                print(f"{idx} Token '{token_str} Token_id {id}' => Score {sc:.2f}")
+            for idx, (token_str, sc, id,tactic_ids) in enumerate(zip(texts, scores,ids,tactic_ids)):
+                print(f"{idx} Token '{token_str} Token_id {id}' => Score {sc:.2f}, Tactic_ids {tactic_ids}")
+
     """
-    
+
+
+
+    return padded_scores, binary_score,all_token_ids,tactic_mean,all_adv_masks,all_tactic_ids
 
 
 
 
-    return padded_scores, binary_score,all_token_ids,tactic_mean
-
-
-
-
-def deepseek_lean4_rloo_custom_reward(prompts, completions, processing_class,max_len,num_generation,delta1, delta2 ,adv_baseline, score_assign ,adv_method, parse_method,first_error,potent_func,potent_type,potent_positive,shift_potential):
+def deepseek_lean4_rloo_custom_reward(prompts, completions, processing_class,max_len,num_generation,delta0, delta1, delta2 ,adv_baseline, score_assign ,adv_method, parse_method,first_error,potent_func,potent_type,potent_positive,shift_potential,potent_coef):
     texts = [p + c for p, c in zip(prompts, completions)]
 
     lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=8, timeout=15, memory_limit=10, name='verifier',
@@ -2117,8 +2251,8 @@ def deepseek_lean4_rloo_custom_reward(prompts, completions, processing_class,max
     print(random.choice(outputs_list))
     # print("output_list",outputs_list)
     # print("rewarding start")
-    all_token_scores, all_token_texts, binary_pass_score,all_token_ids,tactic_mean = fail_aware_compute_token_level_advantages(
-        prompts, completions, outputs_list,processing_class,extracted_code, parse_method,0.9,num_generation,delta1,delta2,ad_baseline=adv_baseline, score_assign=score_assign,adv_method=adv_method, first_error=first_error,potent_func=potent_func,potent_type=potent_type,potent_positive=potent_positive,shift_potential=shift_potential)
+    all_token_scores, all_token_texts, binary_pass_score,all_token_ids,tactic_mean,all_adv_masks,all_tactic_ids = fail_aware_compute_token_level_advantages(
+        prompts, completions, outputs_list,processing_class,extracted_code, parse_method,0.9,num_generation,delta0,delta1,delta2,ad_baseline=adv_baseline, score_assign=score_assign,adv_method=adv_method, first_error=first_error,potent_func=potent_func,potent_type=potent_type,potent_positive=potent_positive,shift_potential=shift_potential,potent_coef=potent_coef)
     #value_compute_token_level_advantages ,grouped_compute_token_level_advantages
 
     # 3. Convert to a padded tensor if desired
@@ -2131,8 +2265,8 @@ def deepseek_lean4_rloo_custom_reward(prompts, completions, processing_class,max
 
 
 
-    """
 
+    """
     n = len(binary_score)
     num_groups = math.ceil(n / num_generation)  # works even if it doesn't divide evenly
 
@@ -2143,15 +2277,15 @@ def deepseek_lean4_rloo_custom_reward(prompts, completions, processing_class,max
 
 
 
-    for i, (scores, texts, ids) in enumerate(zip(all_token_scores, all_token_texts,all_token_ids)):
+    for i, (scores, texts, ids,tactic_ids) in enumerate(zip(all_token_scores, all_token_texts,all_token_ids,all_tactic_ids)):
         print(f"--- Completion #{i} ---")
         if i ==0:
             baseline = group_means[0 // num_generation]
             print("baseline",baseline)
             print("output_list",outputs_list[0])
             print("completions",completions[0])
-            for idx, (token_str, sc, id) in enumerate(zip(texts, scores,ids)):
-                print(f"{idx} Token '{token_str} Token_id {id}' => Score {sc:.2f}")
+            for idx, (token_str, sc, id,tactic_ids) in enumerate(zip(texts, scores,ids,tactic_ids)):
+                print(f"{idx} Token '{token_str} Token_id {id}' => Score {sc:.2f}, Tactic_ids {tactic_ids}")
 
     """
 
@@ -2161,7 +2295,7 @@ def deepseek_lean4_rloo_custom_reward(prompts, completions, processing_class,max
 
 
 
-    return padded_scores, binary_score,all_token_ids,tactic_mean
+    return padded_scores, binary_score,all_token_ids,tactic_mean,all_adv_masks,all_tactic_ids
 
 
 

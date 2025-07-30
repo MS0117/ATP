@@ -19,8 +19,8 @@ gradient_accumulation_steps: 8
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: true
-hub_model_id: Minsukim/DS_sft_500k_only_potential_exponential_step_positive_1.0_last_groupmean_-0.05_-0.1_stp_data
-output_dir: /projects/minsu/ATP_checkpoints/DeepSeek-Prover-V1.5-7B_sft_stp_500k_grpo_custom_only_potential_exponential_step_positive_1.0_last_groupmean_-0.05_-0.1_stp_data
+hub_model_id: Minsukim/DS_sft_500k_custom_start_gropbaseline_1_-0.05_-0.1_stp_data_1024
+output_dir: /projects/minsu/ATP_checkpoints/DeepSeek-Prover-V1.5-7B_sft_stp_500k_grpo_custom_start_gropbaseline_1_-0.05_-0.1_stp_data_1024
 
 log_level: info
 logging_steps: 10
@@ -36,10 +36,11 @@ report_to:
 - wandb
 
 
+
 #resume_from_checkpoint: true
 
 save_strategy: "steps"
-save_steps: 40
+save_steps: 100
 save_only_model: true
 #save_total_limit: 5
 hub_strategy: "end"
@@ -82,20 +83,21 @@ whiten_rewards: false
 
 
 alpha_advantage: 1
+delta0: 1
 delta1: -0.05
 delta2: -0.1
 adv_baseline: "group"
-score_assign: "last"  #last ,all
+score_assign: "start"  #last ,all,mix,start
 adv_method: "label"    #return or label
 parse_method: "tree"
-weighted_adv: true   #true or false
+weighted_adv: false   #true or false
 first_error: true  #true or false
 
 
-potent_func: true
+potent_func: false
 potent_type: "exponential_step" #"distance_to_goal" #"monotone_growth" "normalized_exponential"
-potent_positive: true
-shift_potential: true
+potent_positive: false
+shift_potential: true   #exponential should be true
 
 #delta_clip: none
 
