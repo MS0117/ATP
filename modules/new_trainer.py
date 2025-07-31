@@ -781,7 +781,7 @@ class NEWCUSTOMTrainer(GRPOTrainer):
             """
 
 
-            if 'mean' in self.divide_weight_method:
+            if 'sum' in self.divide_weight_method:
                 denom = torch.zeros_like(r_tactic)
                 denom.index_add_(0, ids_valid, It_valid)  # sum I_t per tactic
                 denom = denom.clamp_min(eps)
@@ -793,15 +793,11 @@ class NEWCUSTOMTrainer(GRPOTrainer):
                 denom_max.scatter_reduce_(0, ids_valid, It_valid, reduce='amax', include_self=True)
                 denom= denom_max.clamp_min(eps)                #(division‑by‑zero 방지)
 
+
             # 2‑2) 토큰‑별 weight
             w_valid = It_valid / denom.index_select(0, ids_valid)  # (n,)
 
 
-            if self.first_tactic_token:
-                first_token_mask = torch.ones_like(ids_valid, dtype=torch.bool)
-                first_token_mask[1:] = ids_valid[1:] != ids_valid[:-1]        # True ↔ 첫 토큰
-
-                w_valid[first_token_mask] = 1.0
 
             if self.advantage_distribute_top_k:
                 keep_mask = torch.zeros_like(w_valid, dtype=torch.bool)  # (n,)
@@ -811,31 +807,34 @@ class NEWCUSTOMTrainer(GRPOTrainer):
                     if idx_m.numel() == 0:
                         continue
 
-                    k = min(top_k, idx_m.numel())  # 토큰 수 < k 인 경우 대비
+                    k = min(10, idx_m.numel())  # 토큰 수 < k 인 경우 대비
                     _, top_local = w_valid[idx_m].topk(k, largest=True)  # tactic 안에서 top‑k
                     keep_indices = idx_m[top_local]  # 원본 vector 기준 index
                     keep_mask[keep_indices] = True
 
 
 
-                """
-                if renormalize := True:
+                w_sparse = w_valid.clone()
+                w_sparse[~keep_mask] = 0.0
+
                 sum_keep = torch.zeros(M_j, device=w_valid.device)
                 sum_keep.index_add_(0, ids_valid[keep_mask], w_sparse[keep_mask])
                 sum_keep = sum_keep.clamp_min(eps)
             
                 w_sparse[keep_mask] = (
                     w_sparse[keep_mask] /
-                    sum_keep.index_select(0, ids_valid[keep_mask])
-    )
-                """
+                    sum_keep.index_select(0, ids_valid[keep_mask]))
 
 
-                w_sparse = w_valid.clone()
-                w_sparse[~keep_mask] = 0.0
+
+
                 w_valid = w_sparse
 
+            if self.first_tactic_token:
+                first_token_mask = torch.ones_like(ids_valid, dtype=torch.bool)
+                first_token_mask[1:] = ids_valid[1:] != ids_valid[:-1]        # True ↔ 첫 토큰
 
+                w_valid[first_token_mask] = 1.0
             # ------------------------------------------------------------------
             # 3) token advantage = r_tactic[m] * w_k
             # ------------------------------------------------------------------
