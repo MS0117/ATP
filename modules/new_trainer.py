@@ -773,7 +773,7 @@ class NEWCUSTOMTrainer(GRPOTrainer):
             # --- tactic scalar advantage (first-token only) ---
             r_tactic = torch.zeros(M_j, device=It_b.device, dtype=It_b.dtype)
 
-            # 첫 토큰만 값이 있고 나머지는 0이므로 "합=그 값" (평균 금지)
+           
             r_sum = torch.zeros_like(r_tactic)
             r_sum.index_add_(0, ids_valid, adv_valid)
             r_tactic = r_sum
@@ -786,27 +786,7 @@ class NEWCUSTOMTrainer(GRPOTrainer):
 
 
 
-            """first tactic token
-            # --------- 분모(denominator) 계산: 첫 토큰 제외 ----------
-            # ‑‑‑ (a) SUM 방식 예시
-            denom = torch.zeros_like(r_tactic)                # (M_j,)
-            denom.index_add_(0, ids_valid[~first_token_mask],   # 첫 토큰 제외
-                             It_valid[~first_token_mask])
-            denom = denom.clamp_min(eps)
-            
-            # ‑‑‑ (b) MAX 방식 예시
-            denom_max = torch.full_like(r_tactic, eps)
-            denom_max.scatter_reduce_(0, ids_valid[~first_token_mask],
-                                      It_valid[~first_token_mask],
-                                      reduce='amax', include_self=True)
-            
-            # --------- weight 계산 ----------
-            w_valid = It_valid / denom.index_select(0, ids_valid)      # SUM 버전이면 denom
-            # w_valid = It_valid / denom_max.index_select(0, ids_valid)    # MAX 버전일 땐 이 줄
-                   
-            # 첫 토큰은 무조건 1.0
-            w_valid[first_token_mask] = 1.0
-            """
+           
 
             tau=2.0
 
