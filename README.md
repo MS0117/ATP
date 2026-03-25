@@ -9,6 +9,7 @@
 
 ## Prepare for Lean and Mathlib
 You can dowload lean via
+
 ```curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh```
 
 ```export PATH="$HOME/.elan/bin:$PATH"```
@@ -16,11 +17,13 @@ You can dowload lean via
 ```elan toolchain install leanprover/lean4:4.9.0-rc1```
 
 Set 4.9.0-rc1 as the default for this environment
+
 ```elan default leanprover/lean4:4.9.0-rc1```
 
 ```git clone https://github.com/xinhjBrant/mathlib4.git```
 
 Install mathlib4
+
 ```cd mathlib4 ```
 
 ```git fetch origin 2f65ba7f1a9144b20c8e7358513548e317d26de1```
@@ -31,6 +34,7 @@ Install mathlib4
 
 Dependency Configuration (lakefile.lean)
 Ensure your lakefile.lean includes the following requirements with the exact versions/commits. This is necessary for the REPL tactic and other utilities to function correctly.
+
 ```require batteries from git "https://github.com/leanprover-community/batteries" @ "42b5dddbd6b2658fcfede9dad26cc47737edec2d"
 require Qq from git "https://github.com/leanprover-community/quote4" @ "a7bfa63f5dddbcab2d4e0569c4cac74b2585e2c6"
 require aesop from git "https://github.com/leanprover-community/aesop" @ "7e3bd939c6badfcb1e607c0fddb509548baafd05"
