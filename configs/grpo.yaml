@@ -1,5 +1,5 @@
 # Model arguments
-model_name_or_path: Minsukim/DeepSeek-Prover-V1.5-7B_sft_stp_500k #Minsukim/DeepSeek-Prover-V1.5-7B_sft_stp2_epoch2 #Minsukim/DeepSeek-Prover-V2-7B_sft_stp #deepseek-ai/DeepSeek-Prover-V2-7B  kfdong/STP_model_Lean_0320 Goedel-LM/Goedel-Prover-SFT Minsukim/internlm_1_8_sft_bf16 #openai-community/gpt2 deepseek-ai/DeepSeek-Prover-V2-7B
+model_name_or_path: kfdong/STP_model_Lean_0320 #Minsukim/DeepSeek-Prover-V1.5-7B_sft_stp2_epoch2 #Minsukim/DeepSeek-Prover-V2-7B_sft_stp #deepseek-ai/DeepSeek-Prover-V2-7B  kfdong/STP_model_Lean_0320 Goedel-LM/Goedel-Prover-SFT Minsukim/internlm_1_8_sft_bf16 #openai-community/gpt2 deepseek-ai/DeepSeek-Prover-V2-7B
 model_revision: main
 torch_dtype: bf16
 attn_implementation: flash_attention_2
@@ -19,8 +19,8 @@ gradient_accumulation_steps: 8
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: true
-hub_model_id: Minsukim/DeepSeek-Prover-V1.5-7B_sft_stp_500k_GRPO_baseline_stpdata_1024
-output_dir: /projects/minsu/ATP_checkpoints/DeepSeek-Prover-V1.5-7B_sft_stp_500k_GRPO_baseline_stpdata_1024
+hub_model_id: Minsukim/ablation_stp_grpo_stp
+output_dir: /projects/minsu/ATP_checkpoints/ablation_stp_grpo_stp
 
 
 log_level: info

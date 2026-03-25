@@ -649,7 +649,7 @@ def compute_returns_no_split(full_text, intervals, tokenizer, gamma=0.9, prompt_
     return results,
 
 
-def assign_advantage_to_tokens(full_text, offsets, snippet, intervals_info, prompt_len):
+def assign_advantage_to_tokens(full_text, offsets, snippet, intervals_info, prompt_len,delta2):
     """
     Given a list of intervals_info (each with keys "start", "end", "label"),
     assign the full advantage (here using the label as the advantage value)
@@ -662,6 +662,9 @@ def assign_advantage_to_tokens(full_text, offsets, snippet, intervals_info, prom
     character_adv = [0] * len(full_text)
     character_mask = [0] * len(full_text)
     character_tid = [-1] * len(full_text)
+    first_delta2_mask = [0] * len(full_text)
+
+    seen_first_delta2 = False
 
     # (B) Find snippet in the full_text, so we can map snippet scores
     snippet_index = full_text.find(snippet)
@@ -675,10 +678,37 @@ def assign_advantage_to_tokens(full_text, offsets, snippet, intervals_info, prom
                 adv = info["advantage"]  # or use info["advantage"] if computed separately  #discounted_return, label
             except:
                 adv = info["advantage"]
+
+            label = info.get("label", 0.0)
             character_adv[int_start:int_end + 1] = [adv] * (int_end - int_start + 1)
             character_mask[ent_start:ent_end + 1] = [1] * (ent_end - ent_start + 1)
-            character_tid[int_start:int_end + 1] = [t_id] * (int_end - int_start + 1)
+            character_tid[ent_start:ent_end + 1] = [t_id] * (ent_end - ent_start + 1)
 
+            """
+            is_delta2 = False
+            if delta2 is not None:
+                is_delta2 = (abs(label - delta2) <= 1e-9)
+            else:
+                is_delta2 = (
+                        info.get("label_name") == "delta2" or
+                        info.get("kind") == "error" or
+                        info.get("is_error") is True
+                )
+
+            if not seen_first_delta2:
+                # --- 아직 첫 에러를 못 찾은 경우 ---
+                if is_delta2:
+                    # 첫 에러 발견! 1로 마스킹합니다.
+                    first_delta2_mask[ent_start:ent_end + 1] = [1] * (ent_end - ent_start + 1)
+                    seen_first_delta2 = True
+                # is_delta2가 아니라면 아무것도 안 합니다 (어차피 마스크는 0이므로).
+
+            else:  # seen_first_delta2가 True인 경우, 즉 첫 에러를 이미 찾은 후
+                # --- 첫 에러를 이미 찾은 후 ---
+                # 이제부터 만나는 모든 tactic 구간은 0으로 덮어써서 '제외' 처리합니다.
+                # 이것이 첫 에러가 만든 넓은 '1'의 영역에 '0'으로 구멍을 뚫는 효과를 냅니다.
+                first_delta2_mask[ent_start:ent_end + 1] = [0] * (ent_end - ent_start + 1)
+            """
 
     else:
         # If snippet wasn't found, we just won't mark anything.
@@ -686,7 +716,7 @@ def assign_advantage_to_tokens(full_text, offsets, snippet, intervals_info, prom
         # print("no matching")
         pass
 
-    return character_adv,character_mask,character_tid
+    return character_adv,character_mask,character_tid,first_delta2_mask
 
 
 def compute_token_level_advantages(prompts, completions, outputs_list, tokenizer, extracted_codes, type, gamma):
@@ -1548,12 +1578,33 @@ def compute_potentials(
     return extended
 
 
+def compute_returns_seq(nodes, gamma: float = 0.9):
+    """
+    nodes: List[Dict], 각 dict는 최소한
+           {"start": int, "label": float} 를 가짐
+    gamma: discount factor
+    기능: start 기준 정렬된 노드들에 대해 뒤에서부터
+          label을 누적해 discounted return 계산
+    """
+    # start 기준으로 정렬
+    nodes = sorted(nodes, key=lambda n: n["start"])
+
+    G = 0.0
+    # 뒤에서 앞으로 누적
+    for n in reversed(nodes):
+        G = n["label"] + gamma * G
+        n["label"] = G
+        n["return"] = G
+
+    return nodes
+
 def delta_value_compute_returns_tree(
         full_text: str,
         intervals: List[Interval],
         tokenizer,
         mean,
         ad_baseline,
+        delta0,
         delta1,
         delta2,
         pass_score,
@@ -1583,10 +1634,14 @@ def delta_value_compute_returns_tree(
     else:
         roots, all_nodes = build_interval_tree(intervals)
     #print("value_reward")
+
+
     # 2. tree‑discounted returns --------------------------------------------
     for r in roots:
         _dfs_compute_returns(r, gamma)
 
+    #####!!!SHOULD DELETE THIS RETURN FUNCTION!!!!!!
+    #all_nodes= compute_returns_seq(all_nodes,gamma)
     # 3. baseline & advantages ----------------------------------------------
 
     values = [n["label"] for n in all_nodes]
@@ -1680,6 +1735,10 @@ def delta_value_compute_returns_tree(
                 else:
                     adv = n['label'] - baseline
 
+                """ delta0 as zero
+                if n['label']==delta0:
+                    adv=0
+                """
                 results.append({
                     "start": n["start"],
                     "end": n["start"],
@@ -1799,8 +1858,10 @@ def fail_aware_compute_token_level_advantages(prompts, completions, outputs_list
     all_token_scores = []
     all_token_texts = []
     all_adv_masks = []
+    all_first_error_masks=[]
     all_token_ids = []
     all_tactic_ids=[]
+    all_intervals_info = []
 
     binary_pass_score = [float(item["complete"]) for item in outputs_list]
 
@@ -1851,7 +1912,7 @@ def fail_aware_compute_token_level_advantages(prompts, completions, outputs_list
             abs_intervals = convert_snippet_intervals_to_full_text(prompt, completion, snippet,
                                                                    snippet_intervals)  # get the position of tactic and error in the full text (prompt+completion)
 
-            intervals_info, = delta_value_compute_returns_no_split(full_text, abs_intervals, tokenizer, baseline,ad_baseline,delta1, delta2,gamma=gamma,
+            intervals_info, = delta_value_compute_returns_no_split(full_text, abs_intervals, tokenizer, baseline,ad_baseline,delta0,delta1, delta2,gamma=gamma,
                                                        prompt_len=prompt_len,adv_method=adv_method,rloo_mean=rloo_mean)
 
         if type == 'tree':
@@ -1862,7 +1923,7 @@ def fail_aware_compute_token_level_advantages(prompts, completions, outputs_list
             abs_intervals = convert_snippet_intervals_to_full_text(prompt, completion, snippet,
                                                                    snippet_intervals)  # get the position of tactic and error in the full text (prompt+completion)
 
-            intervals_info,mean_state_score = delta_value_compute_returns_tree(full_text, abs_intervals, tokenizer,baseline, ad_baseline,delta1, delta2,pass_score, gamma=gamma,
+            intervals_info,mean_state_score = delta_value_compute_returns_tree(full_text, abs_intervals, tokenizer,baseline, ad_baseline,delta0,delta1, delta2,pass_score, gamma=gamma,
                                                    prompt_len=prompt_len,score_assign=score_assign,adv_method=adv_method,rloo_mean=rloo_mean,potent_func=potent_func,potent_type=potent_type,potent_positive=potent_positive,shift_potential=shift_potential,potent_coef=potent_coef,entropy_position=entropy_position)
             # if len(intervals_info)==0:
             #    print("no interval",out_data)
@@ -1879,6 +1940,7 @@ def fail_aware_compute_token_level_advantages(prompts, completions, outputs_list
 
         token_scores = []
         token_masks=[]
+        first_error_token_masks=[]
         token_texts = []
         token_id = []
         token_tactic_ids=[]
@@ -1911,7 +1973,7 @@ def fail_aware_compute_token_level_advantages(prompts, completions, outputs_list
 
         # 7. Assign advantages to tokens based on intervals_info
         elif type == 'advantage' or type == 'tree':
-            character_advantages, character_mask,character_tid = assign_advantage_to_tokens(full_text, offsets, snippet, intervals_info, prompt_len)
+            character_advantages, character_mask,character_tid,first_error_mask = assign_advantage_to_tokens(full_text, offsets, snippet, intervals_info, prompt_len,delta2)
 
         for tid, (start, end) in zip(input_ids, offsets):
             if start >= prompt_len:
@@ -1943,6 +2005,10 @@ def fail_aware_compute_token_level_advantages(prompts, completions, outputs_list
                 assigned = 1 if any(slice_msk) else 0
                 token_masks.append(assigned)
 
+                first_error_slice_msk = first_error_mask[start:end]
+                first_error_assigned = 1 if any(first_error_slice_msk) else 0
+                first_error_token_masks.append(first_error_assigned )
+
 
                 slice_tids = character_tid[start:end]
                 # pick the most frequent id in that slice (ignores -1)
@@ -1958,6 +2024,7 @@ def fail_aware_compute_token_level_advantages(prompts, completions, outputs_list
             token_id.append(100001)
             token_texts.append("eos")
             token_masks.append(0)
+            first_error_token_masks.append(0)
             token_tactic_ids.append(-1)
             #print("completion_ids_in_rewarwd_function",token_id)
         #print("token_scores_in_rewarwd_function",token_scores)
@@ -1965,9 +2032,17 @@ def fail_aware_compute_token_level_advantages(prompts, completions, outputs_list
         all_token_texts.append(token_texts)
         all_token_ids.append(token_id)
         all_adv_masks.append(token_masks)
+        all_first_error_masks.append(first_error_token_masks)
         all_tactic_ids.append(token_tactic_ids)
+        all_intervals_info.append(intervals_info)
     tactic_mean=sum(tactic_mean)/len(tactic_mean)
-    return all_token_scores, all_token_texts, binary_pass_score, all_token_ids,tactic_mean,all_adv_masks,all_tactic_ids
+
+    """"#Debugging
+
+    """
+
+
+    return all_token_scores, all_token_texts, binary_pass_score, all_token_ids,tactic_mean,all_adv_masks,all_tactic_ids,all_first_error_masks
 
 
 
@@ -2189,7 +2264,7 @@ def lean4_rloo_custom_reward(prompts, completions, processing_class,max_len,num_
     print(random.choice(outputs_list))
     # print("output_list",outputs_list)
     # print("rewarding start")
-    all_token_scores, all_token_texts, binary_pass_score,all_token_ids,tactic_mean,all_adv_masks,all_tactic_ids = fail_aware_compute_token_level_advantages(
+    all_token_scores, all_token_texts, binary_pass_score,all_token_ids,tactic_mean,all_adv_masks,all_tactic_ids,all_first_error_masks = fail_aware_compute_token_level_advantages(
         prompts, completions, outputs_list,processing_class,extracted_code, parse_method,0.9,num_generation,delta0,delta1,delta2,ad_baseline=adv_baseline, score_assign=score_assign,adv_method=adv_method, first_error=first_error,potent_func=potent_func,potent_type=potent_type,potent_positive=potent_positive,shift_potential=shift_potential,potent_coef=potent_coef,entropy_position=entropy_position)
     #value_compute_token_level_advantages ,grouped_compute_token_level_advantages
 
@@ -2199,11 +2274,15 @@ def lean4_rloo_custom_reward(prompts, completions, processing_class,max_len,num_
     padded_scores = rloo_list_of_lists_to_padded_tensor(all_token_scores,max_len,padding_value=0)
     all_adv_masks= rloo_list_of_lists_to_padded_tensor(all_adv_masks,max_len,padding_value=0)
     all_tactic_ids=rloo_list_of_lists_to_padded_tensor(all_tactic_ids,max_len,padding_value=-1)
+    all_first_error_masks=rloo_list_of_lists_to_padded_tensor(all_first_error_masks,max_len,padding_value=0)
     binary_score = [float(item["complete"]) for item in outputs_list]
     #print("padded_scores",padded_scores.size())
     lean4_scheduler.close()
 
-
+    timeout_flags = [
+        1.0 if "TimeoutExpired" in (item.get("system_errors") or "") else 0.0
+        for item in outputs_list
+    ]
 
 
     """
@@ -2226,17 +2305,17 @@ def lean4_rloo_custom_reward(prompts, completions, processing_class,max_len,num_
             print("completions",completions[0])
             for idx, (token_str, sc, id,tactic_ids) in enumerate(zip(texts, scores,ids,tactic_ids)):
                 print(f"{idx} Token '{token_str} Token_id {id}' => Score {sc:.2f}, Tactic_ids {tactic_ids}")
-
     """
 
 
 
-    return padded_scores, binary_score,all_token_ids,tactic_mean,all_adv_masks,all_tactic_ids
+
+    return padded_scores, binary_score,all_token_ids,tactic_mean,all_adv_masks,all_tactic_ids,all_first_error_masks,timeout_flags
 
 
 
 
-def deepseek_lean4_rloo_custom_reward(prompts, completions, processing_class,max_len,num_generation,delta0, delta1, delta2 ,adv_baseline, score_assign ,adv_method, parse_method,first_error,potent_func,potent_type,potent_positive,shift_potential,potent_coef):
+def deepseek_lean4_rloo_custom_reward(prompts, completions, processing_class,max_len,num_generation,delta0, delta1, delta2 ,adv_baseline, score_assign ,adv_method, parse_method,first_error,potent_func,potent_type,potent_positive,shift_potential,potent_coef,entropy_position):
     texts = [p + c for p, c in zip(prompts, completions)]
 
     lean4_scheduler = Lean4ServerScheduler(max_concurrent_requests=8, timeout=15, memory_limit=10, name='verifier',
@@ -2251,17 +2330,26 @@ def deepseek_lean4_rloo_custom_reward(prompts, completions, processing_class,max
     print(random.choice(outputs_list))
     # print("output_list",outputs_list)
     # print("rewarding start")
-    all_token_scores, all_token_texts, binary_pass_score,all_token_ids,tactic_mean,all_adv_masks,all_tactic_ids = fail_aware_compute_token_level_advantages(
-        prompts, completions, outputs_list,processing_class,extracted_code, parse_method,0.9,num_generation,delta0,delta1,delta2,ad_baseline=adv_baseline, score_assign=score_assign,adv_method=adv_method, first_error=first_error,potent_func=potent_func,potent_type=potent_type,potent_positive=potent_positive,shift_potential=shift_potential,potent_coef=potent_coef)
+    all_token_scores, all_token_texts, binary_pass_score,all_token_ids,tactic_mean,all_adv_masks,all_tactic_ids,all_first_error_masks = fail_aware_compute_token_level_advantages(
+        prompts, completions, outputs_list,processing_class,extracted_code, parse_method,0.9,num_generation,delta0,delta1,delta2,ad_baseline=adv_baseline, score_assign=score_assign,adv_method=adv_method, first_error=first_error,potent_func=potent_func,potent_type=potent_type,potent_positive=potent_positive,shift_potential=shift_potential,potent_coef=potent_coef,entropy_position=entropy_position)
     #value_compute_token_level_advantages ,grouped_compute_token_level_advantages
 
     # 3. Convert to a padded tensor if desired
     #    Each row in padded_scores corresponds to one (prompt+completion) example
     #    The columns are the tokens in the completion portion
     padded_scores = rloo_list_of_lists_to_padded_tensor(all_token_scores,max_len,padding_value=0)
+    all_adv_masks = rloo_list_of_lists_to_padded_tensor(all_adv_masks, max_len, padding_value=0)
+    all_tactic_ids = rloo_list_of_lists_to_padded_tensor(all_tactic_ids, max_len, padding_value=-1)
+    all_first_error_masks = rloo_list_of_lists_to_padded_tensor(all_first_error_masks, max_len, padding_value=0)
     binary_score = [float(item["complete"]) for item in outputs_list]
     #print("padded_scores",padded_scores.size())
     lean4_scheduler.close()
+
+    timeout_flags = [
+        1.0 if "TimeoutExpired" in (item.get("system_errors") or "") else 0.0
+        for item in outputs_list
+    ]
+
 
 
 
@@ -2295,7 +2383,7 @@ def deepseek_lean4_rloo_custom_reward(prompts, completions, processing_class,max
 
 
 
-    return padded_scores, binary_score,all_token_ids,tactic_mean,all_adv_masks,all_tactic_ids
+    return padded_scores, binary_score,all_token_ids,tactic_mean,all_adv_masks,all_tactic_ids,all_first_error_masks,timeout_flags
 
 
 

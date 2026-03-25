@@ -357,6 +357,12 @@ class CUSTOMConfig(trl.GRPOConfig):
     divide_weight_method: Optional[str] = field(default="mean")
     first_tactic_token:Optional[bool]=field(default=True)
     advantage_distribute_top_k:Optional[bool]=field(default=True)
+    distribution_method:Optional[str]=field(default="info_gain")
+    reward_uniform_distribution:Optional[bool]=field(default=False)
+    only_first_error_distribute:Optional[bool]=field(default=False)
+    weighted_prob_advantage:Optional[bool]=field(default=False)
+
+
 @dataclass
 class GRPOConfig(trl.GRPOConfig):
 

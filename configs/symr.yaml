@@ -1,5 +1,5 @@
 # Model arguments
-model_name_or_path: kfdong/STP_model_Lean_0320 #"Minsukim/DeepSeek-Prover-V1.5-7B_sft_stp_500k" #"deepseek-ai/DeepSeek-Prover-V2-7B"  # kfdong/STP_model_Lean_0320 Goedel-LM/Goedel-Prover-SFT Minsukim/internlm_1_8_sft_bf16_epoch1  #Minsukim/internlm_1_8_sft_bf16 deepseek-ai/DeepSeek-Prover-V2-7B, openai-community/gpt2
+model_name_or_path: kfdong/STP_model_Lean_0320 #Minsukim/DeepSeek-Prover-V1.5-7B_sft_stp_500k #"deepseek-ai/DeepSeek-Prover-V2-7B"  # kfdong/STP_model_Lean_0320 Goedel-LM/Goedel-Prover-SFT Minsukim/internlm_1_8_sft_bf16_epoch1  #Minsukim/internlm_1_8_sft_bf16 deepseek-ai/DeepSeek-Prover-V2-7B, openai-community/gpt2
 model_revision: main
 torch_dtype: bf16
 attn_implementation: flash_attention_2
@@ -19,8 +19,8 @@ gradient_accumulation_steps: 8
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: true
-hub_model_id: Minsukim/stp_grpo_custom_entropy_mean_first_distribute_start_zerobaseline_1_-0.1_-1_stp_data_1024
-output_dir: /projects/minsu/ATP_checkpoints/stp_grpo_custom_entropy_mean_first_distribute_start_zerobaseline_1_-0.1_-1_stp_data_1024
+hub_model_id: Minsukim/ablation_stp_start_groupbase_1_-0.05_-0.25_stp
+output_dir: /projects/minsu/ATP_checkpoints/ablation_stp_start_groupbase_1_-0.05_-0.25_stp
 
 log_level: info
 logging_steps: 10
@@ -82,10 +82,10 @@ whiten_rewards: false
 
 alpha_advantage: 1
 delta0: 1
-delta1: -0.1
-delta2: -1
-adv_baseline: "zero"
-score_assign: "all"  #last ,all,mix,start
+delta1: -0.05
+delta2: -0.25
+adv_baseline: "group"
+score_assign: "start"  #last ,all,mix,start
 adv_method: "label"    #return or label
 parse_method: "tree"
 weighted_adv: false   #true or false
@@ -111,14 +111,19 @@ entropy_position: "all"
 
 
 asymmetric: false
-tactic_distribution: true
 
 
-positive_entropy_drop: true
-divide_weight_method: mean
+tactic_distribution: false
+distribution_method: "info_gain"
+positive_entropy_drop: false
+reward_uniform_distribution: true
+divide_weight_method: "softmax_tau"
 first_tactic_token: true
-advantage_distribute_top_k: false
+advantage_distribute_top_k: true
+only_first_error_distribute: true
 
+
+weighted_prob_advantage: false
 
 
 

@@ -18,6 +18,9 @@ from transformers import (
     TrainerCallback,
     is_wandb_available,
 )
+import csv
+import os
+import math
 from torch.utils.data import Sampler
 from trl import GRPOTrainer
 from trl.trainer.utils import disable_dropout_in_model
@@ -199,10 +202,14 @@ class NEWCUSTOMTrainer(GRPOTrainer):
         self.entropy_position=args.entropy_position
         self.asymmetric= args.asymmetric
         self.tactic_distribution=args.tactic_distribution
+        self.distribution_method=args.distribution_method
         self.positive_entropy_drop=args.positive_entropy_drop
         self.divide_weight_method=args.divide_weight_method
         self.first_tactic_token=args.first_tactic_token
         self.advantage_distribute_top_k=args.advantage_distribute_top_k
+        self.reward_uniform_distribution=args.reward_uniform_distribution
+        self.only_first_error_distribute=args.only_first_error_distribute
+        self.weighted_prob_advantage=args.weighted_prob_advantage
 
     @profiling_decorator
     def _prepare_inputs(self, inputs: dict[str, Union[torch.Tensor, Any]]) -> dict[str, Union[torch.Tensor, Any]]:
@@ -405,7 +412,7 @@ class NEWCUSTOMTrainer(GRPOTrainer):
             elif "lean" in str(reward_func).lower():
                 # print("prompts",prompts)
                 # print("completions",completions)
-                output_reward_func, binary_pass_score,all_token_ids,tactic_mean,adv_masks,all_tactic_ids = reward_func(prompts=prompts, completions=completions,
+                output_reward_func, binary_pass_score,all_token_ids,tactic_mean,adv_masks,all_tactic_ids,all_first_error_masks,timeout_flags = reward_func(prompts=prompts, completions=completions,
                                                                     processing_class=self.processing_class,
                                                                     max_len=completion_ids.size(
                                                                         1), num_generation=self.num_generations,
@@ -432,6 +439,8 @@ class NEWCUSTOMTrainer(GRPOTrainer):
                 tactic_advantage = torch.tensor(output_reward_func, dtype=torch.float32, device=device)  # reward
                 adv_masks = torch.tensor(adv_masks, dtype=torch.float32, device=device)
                 all_tactic_ids=torch.tensor(all_tactic_ids, dtype=torch.float32, device=device)
+                all_first_error_masks=torch.tensor(all_first_error_masks, dtype=torch.float32, device=device)
+                timeout_flags = torch.tensor(timeout_flags, dtype=torch.float32, device=device)
                 #print("rewards_per_func.size()",tactic_advantage.size())
 
 
@@ -611,6 +620,12 @@ class NEWCUSTOMTrainer(GRPOTrainer):
         self._metrics[mode]["reward"].append(tactic_advantage_mean.item())
         # self._metrics[mode]["reward_std"].append(std_grouped_rewards.mean().item())
 
+        agg_timeout_flags = self.accelerator.gather_for_metrics(timeout_flags)  # (N_total,)
+        timeout_ratio = agg_timeout_flags.float().mean().item()
+
+        # 로그
+        self._metrics[mode]["timeout_ratio"].append(timeout_ratio)
+
         if self.log_completions and self.state.global_step % self.args.logging_steps == 0:
             prompts_to_log = gather_object(prompts_text)
             completions_to_log = gather_object(completions_text)
@@ -659,6 +674,7 @@ class NEWCUSTOMTrainer(GRPOTrainer):
             "binary_score": binary_pass_score,
             "adv_mask":adv_masks,
             "all_tactic_ids":all_tactic_ids,
+            "all_first_error_masks":all_first_error_masks,
             "binary_reward":binary_reward
         }
 
@@ -672,6 +688,7 @@ class NEWCUSTOMTrainer(GRPOTrainer):
             tactic_ids: torch.Tensor,  # (B, L)  ‑1 = no tactic, 0..M_j‑1 otherwise
             tactic_token_adv: torch.Tensor,  # (B, L)  SAME SHAPE, each tactic’s tokens carry same value
             entropies: torch.Tensor,
+            all_first_error_masks,
             eps: float = 1e-8,
 
     ):
@@ -688,30 +705,30 @@ class NEWCUSTOMTrainer(GRPOTrainer):
 
 
         #entropy
-        H_prev = torch.zeros_like(entropies)  # (B, L)
-        H_prev[:, 1:] = entropies[:, :-1]  # 오른쪽으로 한 칸 밀기
 
-        # 2) 서명(signed) entropy‑drop:  I_signed = H_{t-1} - H_t
-        I_signed = H_prev - entropies               # (B, L)
-        
-        # 3‑A) **양수 부분만 사용** (불확실성 ↓ 부분에만 크레딧)
-        I_positive = torch.clamp(I_signed, min=0.0)  # (B, L)
-        
-        # 3‑B) **절댓값 사용** (불확실성 ↑↓ 모두 크레딧, 방향 무시)
-        I_abs = I_signed.abs()                      # (B, L)
+        if "info_gain" in self.distribution_method.lower():
 
+            H_prev = torch.zeros_like(entropies)  # (B, L)
+            H_prev[:, 1:] = entropies[:, :-1]
 
-        if self.positive_entropy_drop:
-            I_t= I_positive
-        else:
-            I_t = I_abs
+            I_signed = H_prev - entropies  # ΔH = H_{t-1} - H_t
 
-        I_t = I_t.to(torch.float32)
+            I_positive = torch.clamp(I_signed, min=0.0)
+            I_abs = I_signed.abs()
 
+            I_t = I_positive if self.positive_entropy_drop else I_abs
+
+        # === 2) entropy 레벨 자체 ==========================
+        elif "entropy" in self.distribution_method.lower():  # 혹은 `in self.entropy_level` 등
+            I_t = entropies.clone()
+
+        I_t = I_t.float()
         """ token ratio between policies
         ratio = torch.exp(per_token_logps - old_per_token_logps)  # (B, L)
         I_t = torch.abs(1.0 - ratio) * completion_mask.float()  # (B, L)
         """
+
+
 
         #print("I_t[0]:", I_t[0].tolist())
         B, L = I_t.shape
@@ -720,6 +737,7 @@ class NEWCUSTOMTrainer(GRPOTrainer):
 
         for b in range(B):
             ids_b = tactic_ids[b]  # (L,)
+            #print("ids_b",ids_b)
             It_b = I_t[b]
             adv_b = tactic_token_adv[b]
 
@@ -728,6 +746,7 @@ class NEWCUSTOMTrainer(GRPOTrainer):
                 continue
 
             ids_valid = ids_b[tactic_tokens]  # (n,)
+            #print("ids_valid", ids_valid)
             It_valid = It_b[tactic_tokens]
             adv_valid = adv_b[tactic_tokens]
 
@@ -739,6 +758,7 @@ class NEWCUSTOMTrainer(GRPOTrainer):
             #    Here we simply take the first occurrence (they’re identical).
             # ------------------------------------------------------------------
             # Each tactic id will store its scalar advantage here:
+            """
             r_tactic = torch.zeros(M_j, device=It_b.device, dtype=It_b.dtype)
             # Because tokens of the same tactic carry the same value,
             # we can use index_add_ and then divide by counts to pick it.
@@ -748,7 +768,15 @@ class NEWCUSTOMTrainer(GRPOTrainer):
             counts.index_add_(0, ids_valid, torch.ones_like(adv_valid))
             r_tactic = r_sum / counts.clamp_min(1.0)  # (M_j,)
             #print("r_tactic",r_tactic)
+            """
 
+            # --- tactic scalar advantage (first-token only) ---
+            r_tactic = torch.zeros(M_j, device=It_b.device, dtype=It_b.dtype)
+
+            # 첫 토큰만 값이 있고 나머지는 0이므로 "합=그 값" (평균 금지)
+            r_sum = torch.zeros_like(r_tactic)
+            r_sum.index_add_(0, ids_valid, adv_valid)
+            r_tactic = r_sum
 
 
 
@@ -780,59 +808,69 @@ class NEWCUSTOMTrainer(GRPOTrainer):
             w_valid[first_token_mask] = 1.0
             """
 
+            tau=2.0
 
-            if 'sum' in self.divide_weight_method:
+            if "softmax_tau" in self.divide_weight_method:
+                # --- (a) τ-softmax :   exp(I/τ) / sum(exp(I/τ)) ---------------
+                exp_I = (It_valid / tau).exp()  # (n,)
                 denom = torch.zeros_like(r_tactic)
-                denom.index_add_(0, ids_valid, It_valid)  # sum I_t per tactic
+                denom.index_add_(0, ids_valid, exp_I)  # tactic별 sum
                 denom = denom.clamp_min(eps)
+                w_valid = exp_I / denom.index_select(0, ids_valid)  # (n,)
+                #print("softmax")
 
+            elif "sum" in self.divide_weight_method:
+                denom = torch.zeros_like(r_tactic)
+                denom.index_add_(0, ids_valid, It_valid)
+                denom = denom.clamp_min(eps)
+                w_valid = It_valid / denom.index_select(0, ids_valid)
 
-
-            elif 'max' in self.divide_weight_method:
-                denom_max = torch.full_like(r_tactic, eps)
-                denom_max.scatter_reduce_(0, ids_valid, It_valid, reduce='amax', include_self=True)
-                denom= denom_max.clamp_min(eps)                #(division‑by‑zero 방지)
-
-
-            # 2‑2) 토큰‑별 weight
-            w_valid = It_valid / denom.index_select(0, ids_valid)  # (n,)
-
-
+            elif "max" in self.divide_weight_method:
+                denom = torch.full_like(r_tactic, eps)
+                denom.scatter_reduce_(0, ids_valid, It_valid,
+                                      reduce='amax', include_self=True)
+                w_valid = It_valid / denom.index_select(0, ids_valid)
 
             if self.advantage_distribute_top_k:
-                keep_mask = torch.zeros_like(w_valid, dtype=torch.bool)  # (n,)
+                keep_mask = torch.zeros_like(w_valid, dtype=torch.bool)
+
+                # top-k 기준: entropy vs w_valid
+                score_vec = It_valid
 
                 for m in range(M_j):
                     idx_m = (ids_valid == m).nonzero(as_tuple=False).squeeze(-1)
                     if idx_m.numel() == 0:
                         continue
+                    k = math.ceil(idx_m.numel() * 0.10)  # 
+                    if k == 0:
+                        continue
+                    _, top_local = score_vec[idx_m].topk(k, largest=True)
+                    keep_mask[idx_m[top_local]] = True
 
-                    k = min(10, idx_m.numel())  # 토큰 수 < k 인 경우 대비
-                    _, top_local = w_valid[idx_m].topk(k, largest=True)  # tactic 안에서 top‑k
-                    keep_indices = idx_m[top_local]  # 원본 vector 기준 index
-                    keep_mask[keep_indices] = True
+                if not self.reward_uniform_distribution:
+                    
+                    if "softmax_tau" in self.divide_weight_method:
+                        raw_kept = exp_I.clone()  # 
+                    else:
+                        raw_kept = It_valid.clone()  # sum / max 
 
+                    raw_kept[~keep_mask] = 0.0
 
+                    sum_keep = torch.zeros(M_j, device=raw_kept.device)
+                    sum_keep.index_add_(0, ids_valid[keep_mask], raw_kept[keep_mask])
+                    sum_keep = sum_keep.clamp_min(eps)
 
-                w_sparse = w_valid.clone()
-                w_sparse[~keep_mask] = 0.0
+                    w_valid = torch.zeros_like(raw_kept)
+                    w_valid[keep_mask] = raw_kept[keep_mask] / sum_keep.index_select(0, ids_valid[keep_mask])
+                    # ------------------------------------------
 
-                sum_keep = torch.zeros(M_j, device=w_valid.device)
-                sum_keep.index_add_(0, ids_valid[keep_mask], w_sparse[keep_mask])
-                sum_keep = sum_keep.clamp_min(eps)
-            
-                w_sparse[keep_mask] = (
-                    w_sparse[keep_mask] /
-                    sum_keep.index_select(0, ids_valid[keep_mask]))
-
-
-
-
-                w_valid = w_sparse
+                if self.reward_uniform_distribution:
+                    w_valid = torch.zeros_like(It_valid)
+                    w_valid[keep_mask] = 1.0
 
             if self.first_tactic_token:
                 first_token_mask = torch.ones_like(ids_valid, dtype=torch.bool)
-                first_token_mask[1:] = ids_valid[1:] != ids_valid[:-1]        # True ↔ 첫 토큰
+                first_token_mask[1:] = ids_valid[1:] != ids_valid[:-1]        # True ↔ 
 
                 w_valid[first_token_mask] = 1.0
             # ------------------------------------------------------------------
@@ -846,6 +884,28 @@ class NEWCUSTOMTrainer(GRPOTrainer):
             token_adv_out[b, tactic_tokens] = adv_token_valid
 
 
+
+
+            if self.only_first_error_distribute:
+                idx_all = torch.nonzero(tactic_tokens, as_tuple=False).squeeze(-1)  # (n,)
+                # 
+                first_valid = torch.ones_like(ids_valid, dtype=torch.bool)
+                if ids_valid.numel() > 1:
+                    first_valid[1:] = ids_valid[1:] != ids_valid[:-1]
+                # 
+                first_token_global = torch.zeros(L, dtype=torch.bool, device=ids_b.device)
+                if idx_all.numel() > 0:
+                    first_token_global[idx_all[first_valid]] = True
+
+                # 
+                fe_mask_b = all_first_error_masks[b].bool()
+                comp_mask_b = completion_mask[b].bool()  # 완료 부분만 반영하고 싶으면 포함
+                final_mask_b = (fe_mask_b | first_token_global) & comp_mask_b
+
+                # 
+                token_adv_out[b].mul_(final_mask_b.to(token_adv_out.dtype))
+
+
             torch.set_printoptions(precision=10, sci_mode=True)
             #print("token_adv_out[0]")
             #print(token_adv_out[0])
@@ -855,18 +915,18 @@ class NEWCUSTOMTrainer(GRPOTrainer):
             #logging
             """
             mode = "eval" if self.control.should_evaluate else "train"
-            # 2) changed token 마스크 & 개수 계산
+            # 2) changed token 
             eps = 1e-8
             changed_mask = (torch.abs(ratio - 1.0) > eps).float() * completion_mask.float()
 
-            # 2) 시퀀스 길이와 바뀐 토큰 수
+            # 
             seq_lens = completion_mask.float().sum(dim=1)  # (B,)
             num_changed_per_s = changed_mask.sum(dim=1)  # (B,)
 
-            # 3) 시퀀스‑별 비율 (=mean)
+            # 3) 
             frac_changed_per_s = num_changed_per_s / seq_lens.clamp_min(1)  # (B,)
 
-            # 3) WandB에 로깅
+            # 3)
             self._metrics[mode]["ratio/mean"].append(frac_changed_per_s.mean().item())
 
 
@@ -875,6 +935,18 @@ class NEWCUSTOMTrainer(GRPOTrainer):
             self._metrics[mode]["ratio/mean"].append(mean_ratio)
             """
 
+        """"#debugging
+        b = 0
+        ids0 = tactic_ids[b].detach().cpu()
+        r0 = tactic_token_adv[b].detach().cpu()
+        adv0 = token_adv_out[b].detach().cpu()
+        first_error_mask0 =all_first_error_masks[b].detach().cpu()
+        
+        print("\n[b=0] idx | id | tactic_token_adv | token_adv_out| first_error_mask")
+        L = ids0.numel()
+        for i in range(L):
+            print(f"{i:4d} | {int(ids0[i].item()):3d} | {float(r0[i].item()): .8f} | {float(adv0[i].item()): .8f} | {float(first_error_mask0[i].item()): .8f}")
+        """
         return token_adv_out, weights_out
 
 
@@ -893,6 +965,7 @@ class NEWCUSTOMTrainer(GRPOTrainer):
         ref_per_token_logps = inputs["ref_per_token_logps"]
         tactic_advantages = inputs["tactic_advantages"]
         adv_mask = inputs["adv_mask"]
+        all_first_error_masks= inputs["all_first_error_masks"]
         all_tactic_ids= inputs["all_tactic_ids"]
         binary_reward = inputs["binary_reward"]
 
@@ -901,6 +974,73 @@ class NEWCUSTOMTrainer(GRPOTrainer):
         #print("completion_ids.size",completion_ids.size())
         #print("completion_mask.size",completion_mask.size())
         per_token_logps,policy_entropies = self._get_per_token_logps(model, input_ids, attention_mask, logits_to_keep)
+
+
+
+
+
+        """
+        #log token-entropy pair
+        comp_ids = completion_ids.detach().cpu()  # (B, L)
+        comp_mask = completion_mask.detach().cpu().bool()
+        comp_H = policy_entropies.detach().cpu()  # (B, L)
+
+        # =====================================================================================
+        # A. PRINT ──
+        # =====================================================================================
+        def decode_tokens(tokenizer, ids):
+            return [
+                tokenizer.decode([tid], clean_up_tokenization_spaces=False).strip()
+                for tid in ids
+            ]
+
+        b = 0
+        tok_str_b = decode_tokens(self.tokenizer, comp_ids[b].tolist())  # <- 수정
+
+        print(f"\n[step {getattr(self, 'global_step', 0):,}] "
+              f"Token-level entropy (batch {b})")
+        for t, (tok, ent, m) in enumerate(zip(tok_str_b,
+                                              comp_H[b].tolist(),
+                                              comp_mask[b])):
+            if not m:
+                continue
+            print(f"{t:3d}: {tok:>15s} | H = {ent:6.3f}")
+        for t, (tok, ent, m) in enumerate(zip(tok_str_b,
+                                              comp_H[b].tolist(),
+                                              comp_mask[b])):
+            if not m:  # padding
+                continue
+            print(f"{t:3d}: {tok:>15s} | H = {ent:6.3f}")
+
+        # =====================================================================================
+        # B. 
+        # =====================================================================================
+        csv_path = getattr(self, "_entropy_csv_path", "token_entropies.csv")
+        set_header = not os.path.exists(csv_path)  
+
+        with open(csv_path, "a", newline="") as f:
+            writer = csv.writer(f)
+            if set_header:
+                writer.writerow(
+                    ["step", "batch", "token_idx", "token", "entropy"]
+                )
+
+            step = getattr(self, "global_step", 0)
+            for b in range(comp_H.size(0)):
+                tok_str_b = decode_tokens(self.tokenizer, comp_ids[b].tolist())  # <- 수정
+                for t, (tok, ent, m) in enumerate(zip(tok_str_b,
+                                                      comp_H[b].tolist(),
+                                                      comp_mask[b])):
+                    if m:
+                        writer.writerow([step, b, t, tok, f"{ent:.6f}"])
+        """
+
+
+
+
+
+
+
 
         if 'ppo' in self.loss_function.lower():
             ratio = torch.exp(per_token_logps - old_per_token_logps)
@@ -1018,7 +1158,8 @@ class NEWCUSTOMTrainer(GRPOTrainer):
                     completion_mask,
                     all_tactic_ids,  # <── here it is
                     tactic_advantages,
-                    policy_entropies
+                    policy_entropies,
+                    all_first_error_masks
                 )
 
                 tactic_advantages= token_adv.detach()
@@ -1075,7 +1216,7 @@ class NEWCUSTOMTrainer(GRPOTrainer):
             # _generate_and_score_completions) and use per_token_logps.detach() instead.
 
             # dropout
-            # pass는 무조건 유지
+            # pass는 
             if self.negative_dropout:
                 binary_mask = (binary_score != 0).clone()
                 fail_idx = (binary_score == 0).nonzero(as_tuple=True)[0]
@@ -1092,6 +1233,56 @@ class NEWCUSTOMTrainer(GRPOTrainer):
 
 
 
+            if self.weighted_prob_advantage:
+                is_tactic = all_tactic_ids.ge(0)  # [B, L]
+                prev_ids = F.pad(all_tactic_ids, (1, 0), value=-10 ** 9)[:, :-1]  # [B, L]
+                first_mask = is_tactic & (all_tactic_ids != prev_ids)  # [B, L]
+
+                # 2) 
+                first_logps = torch.where(first_mask, ref_per_token_logps, torch.zeros_like(ref_per_token_logps))
+                num_first = first_mask.sum(dim=1).clamp(min=1)  # [B]
+                ell_bar = first_logps.sum(dim=1) / num_first  # [B]
+
+                # 3) 
+                gamma = 0.2
+                w_min, w_max = 1.0, 1.5
+
+                fail = (binary_reward == 0)  # [B]
+                num_fail = fail.sum()
+                ell_fail = ell_bar[fail]  # 
+
+                fail = (binary_reward == 0)
+                if fail.any():
+                    tau_fail = ell_bar[fail].median()
+                    over = (ell_bar - tau_fail).clamp_min(0)
+                    w = (1.0 + gamma * over).clamp(w_min, w_max)
+                    w = torch.where(fail, w, torch.ones_like(w))  # 
+                else:
+                    w = torch.ones_like(ell_bar)  # 
+
+
+                # 4) 
+                scale = torch.where(first_mask, w.unsqueeze(1), torch.ones_like(tactic_advantages))  # [B, L]
+                raw_advantages = (tactic_advantages * scale).detach()
+
+                """"#debugging
+                with torch.no_grad():
+                    b = 0
+                    ids0 = all_tactic_ids[b].detach().cpu()  # [L]
+                    first_mask0 = first_mask[b].detach().cpu()  # [L] (bool)
+                    tadv0 = tactic_advantages[b].detach().cpu()  # [L]
+                    scale0 = scale[b].detach().cpu()  # [L]
+                    raw_adv0 = raw_advantages[b].detach().cpu()  # [L]
+                    print("\n[b=0] idx |  id | first | tactic_adv     | scale         | raw_adv")
+                    L = ids0.numel()
+                    for i in range(L):
+                        _id = int(ids0[i].item())
+                        _fst = int(first_mask0[i].item())  # bool -> 0/1
+                        _tadv = float(tadv0[i].item())
+                        _scl = float(scale0[i].item())
+                        _raw = float(raw_adv0[i].item())
+                        print(f"{i:4d} | {_id:3d} | {_fst:5d} | {_tadv: .8f} | {_scl: .8f} | {_raw: .8f}")
+                """
             # advantages = masked_whiten(raw_advantages, completion_mask, shift_mean=True)
             advantages = raw_advantages
 
@@ -1108,10 +1299,10 @@ class NEWCUSTOMTrainer(GRPOTrainer):
 
             if self.entropy_adv:
                 batch_mask = (binary_reward == 0).unsqueeze(1).expand_as(policy_entropies)
-                # (2) 최종 마스크: adv 토큰 & 실패한 배치
+                # (2)
                 final_mask = batch_mask & adv_mask.bool()
 
-                # (3) entropy 가져오기
+                # (3) 
                 ent_selected = self.entropy_coef*(torch.where(final_mask, policy_entropies, torch.zeros_like(policy_entropies)))
 
 
@@ -1126,10 +1317,10 @@ class NEWCUSTOMTrainer(GRPOTrainer):
 
             if self.entropy_reg:
                 batch_mask = (binary_reward == 0).unsqueeze(1).expand_as(policy_entropies)
-                # (2) 최종 마스크: adv 토큰 & 실패한 배치
+                # (2) 
                 final_mask = batch_mask & adv_mask.bool()
 
-                # (3) entropy 가져오기
+                # (3) entropy 
                 ent_selected = self.entropy_coef * (
                     torch.where(final_mask, policy_entropies, torch.zeros_like(policy_entropies)))
 
@@ -1186,6 +1377,19 @@ class NEWCUSTOMTrainer(GRPOTrainer):
         mean_entropy_per_seq = masked_entropy.sum(-1) / token_counts  # (B,)
         self._metrics[mode]["policy_entrpoy"].append(self.accelerator.gather_for_metrics(mean_entropy_per_seq).mean().item())
 
+
+        """
+        sum_local = ell_fail.sum()
+        cnt_local = torch.tensor([ell_fail .numel()], device=ell_fail.device, dtype=torch.long)
+
+        sum_all = self.accelerator.gather_for_metrics(sum_local)  # [num_procs]
+        cnt_all = self.accelerator.gather_for_metrics(cnt_local)  # [num_procs]
+
+        fail_tactic_prob = (sum_all.sum() / cnt_all.sum().clamp(min=1)).item()
+
+        self._metrics[mode]["fail_tactic_prob"].append(fail_tactic_prob)
+
+        """
 
 
         # print("self._metrics[mode]",self._metrics[mode])

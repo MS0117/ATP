@@ -20,7 +20,7 @@ from transformers import (
 
 )
 
-from modules import CUSTOMTrainer,CustomRLOOTrainer,lean4_value_reward,lean4_grpo_reward,lean4_rloo_reward,lean4_rloo_custom_reward,NEWCUSTOMTrainer
+from modules import CUSTOMTrainer,CustomRLOOTrainer,lean4_value_reward,lean4_grpo_reward,lean4_rloo_reward,lean4_rloo_custom_reward,deepseek_lean4_grpo_reward,NEWCUSTOMTrainer,RLOO_VLLM_Trainer
 from utils import (
     DataArguments,
     H4ArgumentParser,
@@ -39,10 +39,14 @@ from utils import (
 from peft import get_peft_model
 from trl import GRPOConfig,GRPOTrainer,RewardConfig,SFTConfig, SFTTrainer,PPOTrainer,PPOConfig, RewardTrainer, RLOOTrainer, RLOOConfig, DataCollatorForCompletionOnlyLM
 #from src import ()
+
+
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import torch._dynamo as dynamo
 dynamo.config.cache_size_limit = 16
 
+#from huggingface_hub import login
+#login(token=os.environ["HF_TOKEN"])
 tqdm.pandas()
 
 logger = logging.getLogger(__name__)
@@ -74,8 +78,7 @@ def build_sft_dataset(example):
     formal_statement = example.get("formal_statement", "")
     formal_proof = example.get("formal_proof", "")
 
-    # (1) Prompt: 코드 블록 열기만!
-    #    (닫는 백틱은 넣지 않는다)
+   
     prompt_text = (
         "Complete the following Lean 4 code...\n\n"
         "```lean4\n"
@@ -84,16 +87,35 @@ def build_sft_dataset(example):
         f"{formal_statement}"
     )
 
-    # (2) Completion: 여기서 코드 블록 닫기
+
     completion_text = (
-        f"{formal_proof}\n"  # formal_proof 끝난 뒤 개행
-        "```"  # 코드 블록 마무리
+        f"{formal_proof}\n"  # formal_proof 
+        "```"  # 
     )
 
     return {
         "prompt": prompt_text,
         "completion": completion_text
     }
+
+def build_sft_stp_dataset(example):
+
+    if "prompt" not in example or "target" not in example:
+        raise KeyError("need prompt and target")
+
+    prompt_text = example["prompt"]
+    completion_raw = example["target"]
+
+
+    completion_text = (
+        completion_raw.rstrip() + ("\n```" if not completion_raw.rstrip().endswith("```") else "")          #completion_raw 
+    )
+
+    return {
+        "prompt": prompt_text,
+        "completion": completion_text #completion_text,  #completion_raw
+    }
+
 
 
 def main(model_args,
@@ -175,13 +197,21 @@ def main(model_args,
             data_path="/userhomes/minsu/symr/data/toy_train.jsonl"
 
         if 'workbook' in data_args.dataset_name.lower():
-            data_path="/userhomes/minsu/symr/data/train_dataset/training_dataset_random_15429.jsonl"
+            data_path="/userhomes/minsu/symr/data/train_dataset/lean_workbook_random_sample_8429.jsonl"
 
         if 'deepseek' in data_args.dataset_name.lower():
-            data_path="/userhomes/minsu/symr/data/train_dataset/deepseek_rl_random_15429.jsonl"
+            data_path="/userhomes/minsu/symr/data/train_dataset/deepseek_15429.jsonl"       #/userhomes/minsu/symr/data/train_dataset/temp/deepseek_rl_random_15429.jsonl
+
+        if 'mix' in data_args.dataset_name.lower():
+            data_path="/userhomes/minsu/symr/data/train_dataset/mixed_15429.jsonl"
+        if 'stp' in data_args.dataset_name.lower():
+            data_path="/userhomes/minsu/symr/data/train_dataset/STP_Lean_train_subset_10000.jsonl"
 
     if 'sft' in training_type.lower():
-        data_path = "/userhomes/minsu/symr/data/deepseek_sft.jsonl"
+        if 'stp' in data_args.dataset_name.lower():
+            data_path= "/userhomes/minsu/symr/data/STP_Lean_sft_train_subset_250000.jsonl"
+        else:
+            data_path = "/userhomes/minsu/symr/data/deepseek_sft.jsonl"
 
     # Load dataset
     data_files = {"train": data_path}
@@ -216,13 +246,29 @@ def main(model_args,
 
         if 'sft' in training_type.lower():
             if training_type.lower() == "sft":
-                train_dataset = raw_datasets["train"].map(
-                    build_sft_dataset
-                    # remove_columns=raw_datasets["train"].column_names  # 필요에 따라 제거
-                )
+                if 'stp' in data_args.dataset_name.lower():
+                    train_dataset = raw_datasets["train"].map(
+                        build_sft_stp_dataset
+                        # remove_columns=raw_datasets["train"].column_names  # 필요에 따라 제거
+                    )
+
+                else:
+                    train_dataset = raw_datasets["train"].map(
+                        build_sft_dataset
+                        # remove_columns=raw_datasets["train"].column_names  # 필요에 따라 제거
+                    )
 
         else:
-            train_dataset = raw_datasets["train"].map(
+
+            if "prompt" in raw_datasets["train"].column_names:
+                train_dataset =  raw_datasets["train"]
+            # ▸ Otherwise build one on the fly (same logic you had before)
+                keep_cols = ["prompt", "target"]
+                train_dataset = train_dataset.remove_columns(
+                    [c for c in train_dataset.column_names if c not in keep_cols]
+                )
+            else:
+                train_dataset = raw_datasets["train"].map(
             build_prompt,
             # Keep other columns if you need them; or remove them if not.
             # remove_columns=raw_datasets["train"].column_names
@@ -232,21 +278,31 @@ def main(model_args,
         return tokenizer(
             batch["prompt"],
             max_length=512,
+            padding_side='left',
             truncation=True,
             add_special_tokens=True,
         )
 
-    # 👉 RLOO 처리: prompt + tokenize
+    # RLOO: prompt + tokenize
     if training_type.lower() in ['rloo', 'customrloo']:
         with PartialState().local_main_process_first():
 
-            train_dataset = raw_datasets["train"].map(build_prompt)
+            if 'stp' not in data_args.dataset_name.lower():
+                train_dataset = raw_datasets["train"].map(build_prompt)
             if 'workbook' in data_args.dataset_name.lower():
                 train_dataset = train_dataset.map(
                     tokenize_fn,
                     batched=True,
                     remove_columns=[
                         "header", "informal_prefix", "formal_statement", "prompt"
+                    ],
+                )
+            elif 'stp' in data_args.dataset_name.lower():
+                train_dataset = train_dataset.map(
+                    tokenize_fn,
+                    batched=True,
+                    remove_columns=[
+                         "target", "prompt"
                     ],
                 )
             else:
@@ -288,7 +344,7 @@ def main(model_args,
             peft_config=peft_config
         )
     elif  'custom'==training_type.lower():
-        trainer = CUSTOMTrainer(
+        trainer = NEWCUSTOMTrainer(
             model=model,
             args=training_args,
             processing_class=tokenizer,
@@ -298,18 +354,30 @@ def main(model_args,
         )
 
     elif 'grpo' ==training_type.lower():
+        if 'deepseek' in model.lower():
+            trainer = GRPOTrainer(
+                model=model,
+                processing_class=tokenizer,
+                reward_funcs=deepseek_lean4_grpo_reward,
+                args=training_args,
+                train_dataset=train_dataset,
+                peft_config=peft_config
+            )
 
-        trainer = GRPOTrainer(
-            model=model,
-            processing_class=tokenizer,
-            reward_funcs=lean4_grpo_reward,
-            args=training_args,
-            train_dataset=train_dataset,
-            peft_config=peft_config
-        )
+        else:
+            trainer = GRPOTrainer(
+                model=model,
+                processing_class=tokenizer,
+                reward_funcs=lean4_grpo_reward,
+                args=training_args,
+                train_dataset=train_dataset,
+                peft_config=peft_config
+            )
+
+
     elif 'rloo' ==training_type.lower():
 
-        trainer = RLOOTrainer(
+        trainer =  RLOOTrainer(
             policy=policy,
             ref_policy=ref,
             processing_class=tokenizer,
