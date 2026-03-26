@@ -1,4 +1,4 @@
-## Install uv and project dependencies
+## Installation
 
 ```pip install uv```
 
